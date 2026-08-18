@@ -1616,11 +1616,18 @@ function createDraftAtPath(parentPath=[]){
 function creatableTopicEntries(){
   return flattenTree(libraryTree)
     .filter(({node})=>Array.isArray(node.children))
-    .map(({node,path})=>({
-      title:node.title,
-      path,
-      childCount:node.children.length
-    }));
+    .map(({node,path})=>{
+      const rawCreatedAt=node.createdAt || libraryCreatedAt[path.join("›")];
+      const createdAt=new Date(rawCreatedAt||0).getTime();
+      return {
+        title:node.title,
+        path,
+        childCount:node.children.length,
+        createdAt:Number.isFinite(createdAt)?createdAt:0
+      };
+    })
+    // Newest notes/topics first. Stable sort preserves Library order for exact ties.
+    .sort((a,b)=>b.createdAt-a.createdAt);
 }
 
 function renderCreateTopicChoices(){

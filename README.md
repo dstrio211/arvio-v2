@@ -2,6 +2,11 @@
 
 Arvio is a dark, premium, local-first collaborative notes workspace designed for desktop and iPhone/PWA use.
 
+## v3.4.1 — creation ordering + Home stack fix
+
+- **Add to an existing topic** now lists the newest-created notes/topics first.
+- **Recently edited** cards use explicit max-content rows, stronger separation, and wrap-safe content so newly added notes cannot visually collapse into adjacent cards.
+
 ## v3.4.0 — deploy-ready cleanup
 
 This package preserves the Arvio v3.1 frontend and local-first behavior while fixing the CSS syntax issues that blocked Vercel's production minifier.
