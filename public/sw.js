@@ -1,4 +1,4 @@
-const CACHE_NAME = "arvio-vite-shell-v341";
+const CACHE_NAME = "arvio-vite-shell-v343";
 const CORE = [
   "/",
   "/manifest.webmanifest",

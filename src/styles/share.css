@@ -840,20 +840,9 @@ body.shared-guest-mode .save-status{
   .share-sheet::-webkit-scrollbar{display:none}
 }
 
-/* v2.8.0 mobile Note Share stays horizontal: person+ beside label. */
+/* v2.8.0 mobile Note Share content sizing.
+   Button geometry is owned by note.css; share.css only owns share glyph/label content. */
 @media(max-width:760px){
-  #page-note .note-share-top{
-    display:inline-flex !important;
-    flex-direction:row !important;
-    align-items:center !important;
-    justify-content:center !important;
-    gap:7px !important;
-    min-width:82px !important;
-    width:auto !important;
-    height:36px !important;
-    min-height:36px !important;
-    padding:0 10px !important;
-  }
   #page-note .note-share-top .share-person-icon{width:15px !important;height:15px !important}
   #page-note .note-share-top .share-person-icon svg{width:15px !important;height:15px !important}
   #page-note .note-share-top .share-label{display:inline-block !important;font-size:13px !important}

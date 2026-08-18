@@ -21,6 +21,7 @@ html:root{
   --ui-flow-gap:28px;
   --ui-section-gap:42px;
   --ui-card-gap:10px;
+  --ui-recent-gap:16px;
   --ui-control-h:54px;
 }
 
@@ -48,7 +49,7 @@ body #workspace .page{max-width:1120px;padding-left:var(--ui-page-inline);paddin
 #workspace #page-home .note-card,#workspace #page-home .recent-list button{padding:22px 20px!important}
 #workspace #page-home .note-card h3{margin:8px 0 9px!important;font-size:var(--ui-card-lg)!important;line-height:1.18!important}
 #workspace #page-home :is(.note-path,.saved,.note-card p,.recent-list small){font-size:var(--ui-meta)!important;line-height:1.48!important}
-#workspace #page-home .recent-list{gap:var(--ui-card-gap)!important}
+#workspace #page-home .recent-list{gap:var(--ui-recent-gap)!important}
 #workspace #page-home .recent-list button span{margin-bottom:5px!important;font-size:var(--ui-card)!important;line-height:1.22!important}
 
 /* Library rhythm */
@@ -117,7 +118,7 @@ body .logout-sheet p{font-size:var(--ui-dialog-body)!important;line-height:1.5!i
 @media(max-width:760px){
   html:root{
     --ui-label:11px;--ui-page-title:clamp(48px,12.4vw,52px);--ui-lead:17px;--ui-section:17px;--ui-card:17px;--ui-card-lg:21px;--ui-body:14.5px;--ui-body-sm:14px;--ui-meta:12.5px;--ui-control:16px;--ui-dialog-title:24px;--ui-dialog-body:14.5px;
-    --ui-page-inline:22px;--ui-page-bottom:calc(132px + env(safe-area-inset-bottom));--ui-flow-gap:24px;--ui-section-gap:38px;--ui-card-gap:9px;--ui-control-h:52px
+    --ui-page-inline:22px;--ui-page-bottom:calc(132px + env(safe-area-inset-bottom));--ui-flow-gap:24px;--ui-section-gap:38px;--ui-card-gap:9px;--ui-recent-gap:14px;--ui-control-h:52px
   }
   body #workspace .page{padding-left:var(--ui-page-inline)!important;padding-right:var(--ui-page-inline)!important;padding-bottom:var(--ui-page-bottom)!important}
   #workspace :is(#page-home,#page-library,#page-profile) h1{font-size:var(--ui-page-title)!important;line-height:.98!important}

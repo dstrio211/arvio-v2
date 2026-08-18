@@ -197,32 +197,62 @@ function splashToWorkspace(){
 async function bootstrapSupabaseAuth(){
   setAvatarAccent("David");
 
-  const authLookup=(async()=>{
-    if(!isSupabaseConfigured || !supabase) return {user:null,profile:null};
-    const {data,error}=await supabase.auth.getUser();
-    if(error || !data?.user) return {user:null,profile:null};
-    const profile=await getArvioProfile(data.user.id);
-    return {user:data.user,profile};
-  })();
+  try{
+    // Launch routing should never wait on a remote auth verification request.
+    // getSession() resolves from the locally persisted Supabase session, while
+    // RLS still protects every cloud read/write that follows.
+    let user=null;
+    let profile=null;
 
-  const [,state]=await Promise.all([sleep(1180),authLookup]);
-  authBootstrapped=true;
+    if(isSupabaseConfigured && supabase){
+      const sessionResult=await Promise.race([
+        supabase.auth.getSession(),
+        sleep(2200).then(()=>({data:{session:null},error:new Error("Auth bootstrap timeout")}))
+      ]).catch(error=>({data:{session:null},error}));
 
-  if(state.user){
-    currentCloudUserId=state.user.id;
-    applyCloudIdentity(state.user,state.profile);
-    if((state.profile?.display_name || state.user?.user_metadata?.display_name || "").trim()){
-      await initializeCloudNotesForUser(state.user.id).catch(()=>{});
-      splashToWorkspace();
-    }else{
-      setAuthStageImmediately("nickname");
-      splashToAuth();
+      user=sessionResult?.data?.session?.user || null;
+
+      if(user){
+        // Profile lookup is helpful for display identity, but it must never hold
+        // the splash screen hostage on a slow mobile connection.
+        profile=await Promise.race([
+          getArvioProfile(user.id),
+          sleep(2200).then(()=>null)
+        ]).catch(()=>null);
+      }
     }
-    return;
-  }
 
-  setAuthStageImmediately("welcome");
-  splashToAuth();
+    // Preserve the intentional splash dwell without tying it to network speed.
+    await sleep(1180);
+    authBootstrapped=true;
+
+    if(user){
+      currentCloudUserId=user.id;
+      applyCloudIdentity(user,profile);
+      if((profile?.display_name || user?.user_metadata?.display_name || "").trim()){
+        // Cloud notes hydrate in the background. A slow Supabase request should
+        // update Home when ready, never strand the user on the launch screen.
+        initializeCloudNotesForUser(user.id).catch(error=>{
+          console.warn("Arvio cloud bootstrap deferred",error);
+        });
+        splashToWorkspace();
+      }else{
+        setAuthStageImmediately("nickname");
+        splashToAuth();
+      }
+      return;
+    }
+
+    setAuthStageImmediately("welcome");
+    splashToAuth();
+  }catch(error){
+    // Last-resort launch watchdog: even an unexpected browser/Supabase failure
+    // should fall back to Auth instead of leaving Loading visible forever.
+    console.warn("Arvio auth bootstrap failed",error);
+    authBootstrapped=true;
+    setAuthStageImmediately("welcome");
+    splashToAuth();
+  }
 }
 
 bootstrapSupabaseAuth();
@@ -1336,6 +1366,7 @@ async function hydrateCloudRowsIntoLocal(rows){
       if(Array.isArray(node.children)) stamp(node.children,current);
     });
     stamp(libraryTree);
+    repairLibraryCreationMetadata();
     await writeCloudRowsToIndexedDb(rows);
     await syncLibrarySubtreeRecordsForAllLocalPaths();
     await persistLibraryStateNow();
@@ -1872,8 +1903,54 @@ function flattenTree(nodes, path=[], out=[]){
   return out;
 }
 
-function getLibraryCreatedAt(path){
-  return new Date(libraryCreatedAt[path.join("›")] || "2026-01-01T00:00:00").getTime();
+function parseArvioTimestamp(value){
+  const ms=new Date(value||0).getTime();
+  return Number.isFinite(ms) && ms>0 ? ms : 0;
+}
+
+function getLibraryCreatedAt(path,node=null){
+  const key=path.join("›");
+  const candidates=[
+    node?.createdAt,
+    libraryCreatedAt[key],
+    node?.updatedAt,
+    node?.lastOpenedAt
+  ];
+  for(const value of candidates){
+    const ms=parseArvioTimestamp(value);
+    if(ms) return ms;
+  }
+  // Missing creation metadata should never impersonate an old fixed date.
+  // A repair pass persists a real timestamp after hydration; this fallback is
+  // only for the very first synchronous render before IndexedDB is ready.
+  return Date.now();
+}
+
+function repairLibraryCreationMetadata(nodes=libraryTree,parentPath=[],fallbackIso=new Date().toISOString()){
+  let changed=false;
+  nodes.forEach(node=>{
+    const path=[...parentPath,node.title];
+    const key=path.join("›");
+    const nodeCreated=parseArvioTimestamp(node.createdAt);
+    const mappedCreated=parseArvioTimestamp(libraryCreatedAt[key]);
+    const updated=parseArvioTimestamp(node.updatedAt);
+    const opened=parseArvioTimestamp(node.lastOpenedAt);
+    const chosen=nodeCreated || mappedCreated || updated || opened || parseArvioTimestamp(fallbackIso);
+    const iso=new Date(chosen).toISOString();
+
+    if(!nodeCreated){
+      node.createdAt=iso;
+      changed=true;
+    }
+    if(!mappedCreated){
+      libraryCreatedAt[key]=node.createdAt || iso;
+      changed=true;
+    }
+    if(Array.isArray(node.children) && node.children.length){
+      if(repairLibraryCreationMetadata(node.children,path,fallbackIso)) changed=true;
+    }
+  });
+  return changed;
 }
 
 function cloneLibraryNodePreservingChildOrder(node){
@@ -1894,8 +1971,8 @@ function sortLibraryNodes(nodes,parentPath=[]){
 
   return [...nodes]
     .sort((a,b)=>{
-      const aTime=getLibraryCreatedAt([a.title]);
-      const bTime=getLibraryCreatedAt([b.title]);
+      const aTime=getLibraryCreatedAt([a.title],a);
+      const bTime=getLibraryCreatedAt([b.title],b);
       return librarySort==="oldest" ? aTime-bTime : bTime-aTime;
     })
     .map(cloneLibraryNodePreservingChildOrder);
@@ -2046,13 +2123,17 @@ async function hydrateLibraryStateFromIndexedDB(){
     }
     libraryStateHydrated=true;
     await hydrateLibraryNoteContentFromIndexedDB();
+    const repairedCreationMetadata=repairLibraryCreationMetadata();
     await seedIndexedDbNotesFromLibrary();
+    if(repairedCreationMetadata) await persistLibraryStateNow();
     renderLibrary(librarySearch?.value||"");
     renderHomeDashboard();
   }catch{
     libraryStateHydrated=true;
     ensureLibraryNodeIds();
     await hydrateLibraryNoteContentFromIndexedDB();
+    const repairedCreationMetadata=repairLibraryCreationMetadata();
+    if(repairedCreationMetadata) await persistLibraryStateNow().catch(()=>{});
     renderLibrary(librarySearch?.value||"");
     renderHomeDashboard();
   }
@@ -2562,7 +2643,7 @@ function renderLibraryDateGroups(nodes){
   const groups=[];
 
   nodes.forEach(node=>{
-    const timestamp=getLibraryCreatedAt([node.title]);
+    const timestamp=getLibraryCreatedAt([node.title],node);
     const dayKey=getDayKeyFromTimestamp(timestamp);
     const last=groups[groups.length-1];
 
@@ -2589,7 +2670,7 @@ function renderLibraryDateGroups(nodes){
 }
 
 function libraryEntryCreatedAt(entry){
-  return getLibraryCreatedAt(entry.path) || Date.now();
+  return getLibraryCreatedAt(entry.path,entry.node);
 }
 
 function libraryEntryUpdatedAt(entry){
@@ -2717,8 +2798,8 @@ function renderLibrarySearch(query){
     .map(entry=>({...entry,score:librarySearchScore(entry,q)}))
     .sort((a,b)=>{
       if(b.score!==a.score) return b.score-a.score;
-      const aTime=getLibraryCreatedAt(a.path);
-      const bTime=getLibraryCreatedAt(b.path);
+      const aTime=getLibraryCreatedAt(a.path,a.node);
+      const bTime=getLibraryCreatedAt(b.path,b.node);
       return librarySort==="oldest" ? aTime-bTime : bTime-aTime;
     });
 

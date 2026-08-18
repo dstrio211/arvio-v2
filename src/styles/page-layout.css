@@ -50,7 +50,7 @@ html{
   padding:0 !important;
 }
 
-#page-library #library-menu{
+#page-library .library-head #library-menu{
   align-self:flex-start !important;
 }
 
