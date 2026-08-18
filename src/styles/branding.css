@@ -1,0 +1,71 @@
+/* ==========================================================
+   Arvio canonical branding system — v2.6.3
+   One owner for every rendered Arvio wordmark.
+   No image filters/transforms: glow lives on wrappers only.
+   ========================================================== */
+
+.brand-logo{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  object-fit:contain;
+  opacity:1;
+  filter:none !important;
+  transform:none !important;
+  image-rendering:auto;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+.loading-brand-logo{
+  width:330px;
+  max-width:min(78vw,330px);
+}
+
+.sidebar-brand-logo{
+  width:116px;
+  max-width:100%;
+}
+
+.mobile-brand-logo{
+  width:92px;
+  max-width:40vw;
+}
+
+/* Welcome is the large brand moment. */
+.welcome-hero-logo{
+  width:286px;
+  max-width:82%;
+  margin:-1px 0 0 -14px;
+}
+
+/* Login / signup / confirm / nickname use the SAME full-resolution asset,
+   rendered large enough to preserve the thin handwritten strokes on iPhone. */
+.auth-brand-logo{
+  width:190px;
+  max-width:54vw;
+}
+
+@media(max-width:760px){
+  .loading-brand-logo{
+    width:246px;
+    max-width:74vw;
+  }
+  .sidebar-brand-logo{width:96px}
+  .mobile-brand-logo{width:88px;max-width:42vw}
+  .welcome-hero-logo{
+    width:250px;
+    max-width:88%;
+    margin:-1px 0 0 -11px;
+  }
+  .auth-brand-logo{
+    width:176px;
+    max-width:58vw;
+  }
+}
+
+@media(max-width:760px) and (max-height:720px){
+  .welcome-hero-logo{width:224px}
+  .auth-brand-logo{width:154px}
+}

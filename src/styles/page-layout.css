@@ -1,0 +1,70 @@
+/* Arvio page-layout — canonical positioning for primary navigation pages
+   v2.7.1
+   Home / Library / Profile share one top-left anchor. */
+
+html{
+  --nav-page-top-desktop:10px;
+  --nav-page-top-mobile:6px;
+  --nav-page-label-size-desktop:12px;
+  --nav-page-label-size-mobile:11px;
+  --nav-page-label-bottom-desktop:12px;
+  --nav-page-label-bottom-mobile:10px;
+}
+
+#page-home,
+#page-library,
+#page-profile{
+  position:relative;
+}
+
+@media (min-width:761px){
+  #page-home,
+  #page-library,
+  #page-profile{
+    padding-top:var(--nav-page-top-desktop) !important;
+  }
+}
+
+#page-home > .eyebrow,
+#page-library .library-head .eyebrow,
+#page-profile > .eyebrow{
+  display:block !important;
+  position:relative !important;
+  inset:auto !important;
+  transform:none !important;
+  margin:0 0 var(--nav-page-label-bottom-desktop) !important;
+  padding:0 !important;
+  font-size:var(--nav-page-label-size-desktop) !important;
+  line-height:1.2 !important;
+  font-weight:560 !important;
+  letter-spacing:.17em !important;
+  color:var(--muted) !important;
+}
+
+#workspace #page-library .library-head{
+  align-items:flex-start !important;
+}
+
+#page-library .library-head > div:first-child{
+  margin:0 !important;
+  padding:0 !important;
+}
+
+#page-library #library-menu{
+  align-self:flex-start !important;
+}
+
+@media (max-width:760px){
+  #page-home,
+  #page-library,
+  #page-profile{
+    padding-top:var(--nav-page-top-mobile) !important;
+  }
+
+  #page-home > .eyebrow,
+  #page-library .library-head .eyebrow,
+  #page-profile > .eyebrow{
+    margin-bottom:var(--nav-page-label-bottom-mobile) !important;
+    font-size:var(--nav-page-label-size-mobile) !important;
+  }
+}

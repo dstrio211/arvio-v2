@@ -1,0 +1,71 @@
+/* Arvio Motion System — canonical interaction timing, v2.8.0
+   Owns motion timing only. Visual material remains in subsystem CSS. */
+:root{
+  --motion-press:150ms;
+  --motion-fast:190ms;
+  --motion-control:240ms;
+  --motion-state:360ms;
+  --motion-pop:320ms;
+  --motion-sheet:360ms;
+  --motion-page-out:120ms;
+  --motion-page-in:400ms;
+  --ease-arvio:cubic-bezier(.16,1,.3,1);
+  --ease-arvio-soft:cubic-bezier(.22,.76,.2,1);
+  --ease-arvio-out:cubic-bezier(.4,0,.7,.2);
+}
+
+/* Route transitions: no last-frame shadow or blur snap. */
+#workspace .page.page-leaving{
+  opacity:0;
+  transform:translateY(-4px) scale(.994);
+  filter:blur(.65px);
+  transition:
+    opacity var(--motion-page-out) var(--ease-arvio-out),
+    transform calc(var(--motion-page-out) + 35ms) var(--ease-arvio-out),
+    filter var(--motion-page-out) ease !important;
+}
+#workspace .page.page-entering{
+  opacity:0;
+  transform:translateY(10px) scale(.991);
+  filter:blur(.8px);
+}
+#workspace .page.page-entering.page-enter-active{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  filter:blur(0);
+  transition:
+    opacity 300ms var(--ease-arvio),
+    transform var(--motion-page-in) var(--ease-arvio),
+    filter 250ms ease !important;
+}
+
+/* Stateful Library cards keep their lighting while physically pressed. */
+#page-library :is(.tree-row,.tree-child):active{
+  transform:scale(.994) !important;
+  filter:brightness(1.025);
+}
+
+/* Shared bubble language. */
+:is(#page-note .command-menu,#page-note .format-menu,#page-note .more-menu,#page-note .highlight-palette,#page-note .link-picker,
+    .permission-menu,.library-options-menu,.library-item-action-sheet,.library-delete-sheet,.library-trash-sheet){
+  transition-timing-function:var(--ease-arvio) !important;
+}
+
+/* Press feedback is short; state changes are slower and readable. */
+:is(#page-note button,.share-sheet button,.logout-sheet button,#page-create button,#page-library button,#page-home button,#page-profile button){
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* Keep reduced motion predictable even for newly added components. */
+@media (prefers-reduced-motion:reduce){
+  #workspace .page.page-leaving,
+  #workspace .page.page-entering.page-enter-active,
+  #page-library :is(.tree-row,.tree-child),
+  #page-note :is(.command-menu,.format-menu,.more-menu,.highlight-palette,.link-picker),
+  .share-overlay,.share-sheet,.permission-menu,
+  .library-options-menu,.library-item-action-sheet,.library-delete-sheet,.library-trash-sheet,
+  .logout-overlay,.logout-sheet{
+    transition-duration:.01ms !important;
+    animation-duration:.01ms !important;
+  }
+}

@@ -1,0 +1,3458 @@
+:root{
+  --bg:#050608; --surface:#0c0f13; --surface-2:#11151b; --border:rgba(255,255,255,.08);
+  --text:#f5f7fa; --muted:#8f98a6; --blue:#cfeaff; --blue-strong:#9ed7ff; --blue-glow:rgba(90,180,255,.34); --blue-glow-strong:rgba(90,180,255,.52);
+  --danger:#ff6b72; --radius:18px;
+}
+*{box-sizing:border-box;}
+html, body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:430;}
+button, input{font:inherit;}
+button{color:inherit;border:0;background:none;cursor:pointer;}
+.screen{display:none;min-height:100vh;}.screen.active{display:flex;}
+
+.brand{font-family:Georgia,"Times New Roman",serif;font-style:italic;letter-spacing:-.06em;}
+
+
+
+
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
+
+
+.brand{font-size:42px;}.eyebrow{font-size:11px;letter-spacing:.16em;color:var(--muted);margin:28px 0 12px;}h1{font-size:clamp(30px,4vw,48px);font-weight:680;letter-spacing:-.045em;margin:0 0 10px;}.muted, .lead{color:var(--muted);line-height:1.6;}.primary-btn, .secondary-btn{padding:14px 18px;border-radius:14px;transition:transform .22s ease,box-shadow .28s ease,background .28s ease,border-color .28s ease;}
+.primary-btn{background:var(--blue);color:#06101a;box-shadow:0 0 0 rgba(90,180,255,0);}
+.secondary-btn{border:1px solid rgba(170,210,240,.14);background:rgba(255,255,255,.015);}
+.primary-btn:hover{transform:translateY(-2px);background:#dff2ff;box-shadow:0 0 22px var(--blue-glow-strong),0 8px 34px rgba(35,130,210,.18);}
+.secondary-btn:hover{transform:translateY(-2px);background:rgba(92,181,255,.105);border-color:rgba(135,205,255,.34);box-shadow:0 0 30px var(--blue-glow-strong),inset 0 0 20px rgba(120,205,255,.045);}
+#workspace{display:grid;grid-template-columns:250px minmax(0,1fr);height:100vh;overflow:hidden;}
+.sidebar{border-right:1px solid var(--border);padding:28px 16px;display:flex;flex-direction:column;gap:28px;height:100vh;position:sticky;top:0;overflow:hidden;}
+.brand-side{font-size:34px;padding:0 12px 12px;}.primary-nav{display:grid;gap:6px;}.nav-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:13px;color:#a9b3c0;font-weight:560;transition:background .22s ease,color .22s ease,box-shadow .22s ease,transform .16s ease;}.nav-item span{font-size:19px;width:22px;text-align:center;}.nav-icon{display:grid;place-items:center;}.nav-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}.nav-item.active{color:var(--text);background:linear-gradient(100deg,rgba(218,239,255,.13),rgba(218,239,255,.04));box-shadow:0 0 30px var(--blue-glow-strong),inset 0 0 0 1px rgba(150,215,255,.11);}.quick-access{display:grid;gap:3px;}.section-label{font-size:10px;letter-spacing:.16em;color:#69717d;padding:0 13px 7px;}.quick-access button{text-align:left;padding:9px 13px;border-radius:10px;color:#aeb6c1;font-weight:520;}.quick-access button:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.main{min-width:0;min-height:0;height:100vh;position:relative;overflow-y:auto;overscroll-behavior-y:contain;}.icon-btn{width:38px;height:38px;border-radius:12px;color:var(--muted);transition:.2s;}.icon-btn:hover, .icon-btn:focus-visible{color:var(--text);background:rgba(210,235,255,.10);box-shadow:0 0 26px var(--blue-glow-strong);}.mobile-brand{display:none;}
+.page{display:none;max-width:1000px;margin:0 auto;padding:52px 48px 100px;}.page.active{display:block;}.lead{font-size:16px;margin-top:0;}
+
+.section-heading{display:flex;align-items:center;justify-content:space-between;}.note-path, .saved{color:var(--muted);font-size:12px;}
+
+.back-btn{color:var(--muted);font-size:20px;}
+
+
+@media (max-width:760px){
+  #workspace{display:block;height:auto;overflow:visible;}.sidebar{display:none;}.main{height:auto;overflow:visible;}.mobile-brand{display:block;font-family:Georgia,serif;font-style:italic;font-size:28px;font-weight:600;}.page{padding:34px 20px 110px;}.page h1{font-size:34px;font-weight:680;}
+}
+
+/* Arvio interaction feedback */
+button{ -webkit-tap-highlight-color: transparent; }
+button:focus-visible{ outline: 1px solid rgba(143,210,255,.55); outline-offset: 2px; }
+.nav-item:hover{color:#eaf7ff;background:rgba(72,177,255,.09);box-shadow:0 0 26px rgba(72,177,255,.22),inset 0 0 14px rgba(72,177,255,.05);}
+.nav-item:active{transform:scale(.975);box-shadow:0 0 42px var(--blue-glow-strong),inset 0 0 20px rgba(72,177,255,.14);}
+.nav-item.active .nav-icon{filter:drop-shadow(0 0 7px rgba(114,199,255,.72));}
+
+/* Note editor v0.5 */
+
+
+
+
+
+
+
+
+
+.child-heading{font-size:10px;letter-spacing:.16em;color:#6f7985;margin-bottom:10px;}
+
+
+
+.child-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--blue);background:rgba(70,171,255,.08);}
+
+
+.child-arrow{font-size:20px;color:#5f6976;}
+
+
+
+
+
+
+
+
+
+
+[hidden]{display:none!important;}
+
+
+/* Library hierarchy v0.6 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.empty{padding:40px 10px;text-align:center;}
+
+/* Arvio highlight palette */
+
+@keyframes paletteIn{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+
+
+
+
+
+/* Clickable note breadcrumbs */
+
+
+
+
+
+
+
+
+
+
+
+/* Dark Arvio highlighter swatches — optimized for white text readability */
+
+
+/* v0.9 — wider desktop writing column */
+
+
+
+/* v1.0 — Arvio motion language: soft, springy, iOS-inspired */
+:root{
+  --motion-spring:cubic-bezier(.22,1.18,.32,1);
+  --motion-smooth:cubic-bezier(.22,.75,.25,1);
+  --motion-fast:170ms;
+  --motion-medium:260ms;
+}
+
+button, .nav-item, .quick-link{
+  -webkit-tap-highlight-color:transparent;
+}
+
+button{
+  transition:
+    transform var(--motion-fast) var(--motion-spring),
+    background var(--motion-fast) var(--motion-smooth),
+    box-shadow var(--motion-medium) var(--motion-smooth),
+    color var(--motion-fast) var(--motion-smooth);
+}
+
+button:active{
+  transform:scale(.965);
+}
+
+.nav-item:active{
+  transform:scale(.985);
+}
+
+/* Dropdowns / popovers */
+
+
+
+
+/* Command menu */
+
+
+
+/* Contextual formatting toolbar */
+
+
+
+/* Library children unfold instead of appearing abruptly */
+
+
+
+/* Selection / focus feedback */
+button:focus-visible{
+  outline:1px solid rgba(114,201,255,.58);
+  outline-offset:2px;
+  box-shadow:0 0 24px rgba(70,171,255,.20);
+}
+
+/* Give clicks a tiny luminous response without making it flashy */
+@keyframes arvioPressGlow{
+  0%{box-shadow:0 0 0 rgba(114,201,255,0)}
+  45%{box-shadow:0 0 24px rgba(114,201,255,.28)}
+  100%{box-shadow:0 0 0 rgba(114,201,255,0)}
+}
+.arvio-click-feedback{
+  animation:arvioPressGlow 360ms var(--motion-smooth);
+}
+
+/* Respect reduced-motion settings */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
+
+/* v1.1 — page transitions + invisible scrollbars */
+.main{
+  scrollbar-width:none;          /* Firefox */
+  -ms-overflow-style:none;       /* old Edge/IE */
+  scrollbar-gutter:auto;
+}
+.main::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;                  /* Chrome / Safari / Edge */
+}
+
+/* The page itself gets a little physical movement, rather than teleporting. */
+.page{
+  transform-origin:50% 12%;
+  will-change:opacity,transform,filter;
+}
+.page.page-leaving{
+  display:block;
+  opacity:0;
+  transform:translateY(-5px) scale(.992);
+  filter:blur(1.5px);
+  transition:
+    opacity 150ms cubic-bezier(.4,0,.7,.2),
+    transform 180ms cubic-bezier(.4,0,.7,.2),
+    filter 150ms ease;
+  pointer-events:none;
+}
+.page.page-entering{
+  display:block;
+  opacity:0;
+  transform:translateY(13px) scale(.986);
+  filter:blur(2px);
+}
+.page.page-entering.page-enter-active{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  filter:blur(0);
+  transition:
+    opacity 310ms cubic-bezier(.16,1,.3,1),
+    transform 410ms cubic-bezier(.16,1,.3,1),
+    filter 260ms ease;
+}
+
+/* Make the selected nav state feel like it moves with the page. */
+.nav-item.active{
+  transition:
+    color 220ms ease,
+    background 280ms cubic-bezier(.16,1,.3,1),
+    box-shadow 340ms cubic-bezier(.16,1,.3,1),
+    transform 220ms cubic-bezier(.16,1,.3,1);
+}
+
+/* Prevent a browser scrollbar from flashing during animated page swaps. */
+html, body{
+  scrollbar-width:none;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+
+/* v1.2 — softer nested reveal / popover motion */
+
+
+
+
+
+
+
+
+
+/* Parent rows settle instead of snapping into the expanded state. */
+
+
+
+/* Fixed editor popovers also animate out — hidden is only applied after exit. */
+
+
+
+
+
+
+
+/* v1.3 — bubble pop motion for slash menu + text-selection toolbar */
+
+
+/* Slash menu: feels like a soft bubble growing from the typing point */
+
+
+
+
+/* Selection toolbar: small compact bubble that pops above the selection */
+
+
+
+
+/* Tiny bubble bloom when the menus finish opening */
+@keyframes bubbleBloom{
+  0%{box-shadow:0 10px 28px rgba(0,0,0,.45),0 0 0 rgba(70,171,255,0)}
+  55%{box-shadow:0 16px 44px rgba(0,0,0,.50),0 0 34px rgba(70,171,255,.22)}
+  100%{box-shadow:0 15px 38px rgba(0,0,0,.48),0 0 26px rgba(70,171,255,.15)}
+}
+
+
+/* Slightly softer item hover inside popup menus */
+
+
+
+
+/* v1.3.1 — clearer hovered toolbar pills */
+
+
+
+
+
+/* v1.4 — perfectly centered toolbar icons + soft login-to-home handoff */
+
+/* Every contextual toolbar control keeps its glyph optically centered,
+   including on hover/press. */
+
+
+
+
+
+/* Make screen visibility explicit so transitions never flash another page. */
+#workspace:not(.active){
+  display:none;
+}
+
+#workspace.active{
+  display:grid;
+}
+
+/* Login departure */
+
+
+
+
+/* Workspace appears in layers instead of all at once. */
+
+
+
+
+
+
+
+#workspace .sidebar{
+  transition:
+    opacity 350ms cubic-bezier(.16,1,.3,1),
+    transform 480ms cubic-bezier(.16,1,.3,1);
+}
+
+#workspace .page.active > *{
+  transition:
+    opacity 360ms cubic-bezier(.16,1,.3,1),
+    transform 480ms cubic-bezier(.16,1,.3,1),
+    filter 300ms ease;
+}
+
+/* A tiny cascading settle on Home after login. */
+
+
+
+
+
+
+
+/* Login click gets one clean physical acknowledgement before the handoff. */
+
+
+@media (max-width:760px){
+  #workspace.active{display:block;}
+  
+  
+  
+  
+}
+
+/* v1.5 — Arvio /link autocomplete */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Slash menu filtering */
+
+
+
+
+
+/* v1.5.1 — slash menu relevance + clearer command row corners */
+
+
+
+
+/* v1.5.2 — selected-nav hover settles instead of feeling "stuck" after click */
+
+/* Once a section is selected, hovering it should feel calmer than hovering
+   an unselected item. No extra jump/translation — just a stable illuminated shell. */
+.nav-item.active:hover{
+  color:#fbfdff;
+  transform:none;
+  background:
+    linear-gradient(100deg,rgba(71,173,255,.24),rgba(71,173,255,.085));
+  box-shadow:
+    0 0 34px rgba(61,166,255,.34),
+    0 0 11px rgba(163,220,255,.18),
+    inset 0 0 0 1px rgba(158,219,255,.17),
+    inset 0 0 18px rgba(72,177,255,.055);
+}
+
+/* The selected icon stays optically stable while the pointer remains over it. */
+.nav-item.active:hover .nav-icon{
+  color:#f7fcff;
+  filter:
+    drop-shadow(0 0 5px rgba(190,230,255,.72))
+    drop-shadow(0 0 10px rgba(72,177,255,.30));
+}
+
+/* Generic click feedback used to temporarily replace the selected glow with a
+   fade-to-zero shadow. Give active nav items their own "press then settle" motion. */
+@keyframes arvioSelectedNavPress{
+  0%{
+    transform:scale(.975);
+    box-shadow:
+      0 0 46px rgba(72,177,255,.56),
+      0 0 15px rgba(187,231,255,.28),
+      inset 0 0 24px rgba(72,177,255,.15),
+      inset 0 0 0 1px rgba(172,226,255,.22);
+  }
+  55%{
+    transform:scale(1.006);
+    box-shadow:
+      0 0 39px rgba(72,177,255,.40),
+      0 0 12px rgba(187,231,255,.20),
+      inset 0 0 19px rgba(72,177,255,.085),
+      inset 0 0 0 1px rgba(172,226,255,.18);
+  }
+  100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 30px var(--blue-glow-strong),
+      inset 0 0 0 1px rgba(150,215,255,.11);
+  }
+}
+.nav-item.active.arvio-click-feedback{
+  animation:arvioSelectedNavPress 420ms cubic-bezier(.16,1,.3,1);
+}
+
+/* Unselected nav hover is allowed to "invite" the click a bit more.
+   Selected hover is intentionally steadier, so the two states feel different. */
+.nav-item:not(.active):hover{
+  background:linear-gradient(100deg,rgba(72,177,255,.105),rgba(72,177,255,.035));
+  box-shadow:
+    0 0 25px rgba(72,177,255,.20),
+    inset 0 0 0 1px rgba(114,201,255,.065);
+}
+
+/* v1.5.3 — cleaner note breadcrumb */
+
+
+
+/* v1.6 — inline image insertion */
+
+@keyframes arvioImageIn{
+  0%{opacity:0;transform:translateY(12px) scale(.965);filter:blur(2px)}
+  70%{opacity:1;transform:translateY(-1px) scale(1.006);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+
+
+
+
+
+
+
+
+
+.image-upload-toast{
+  position:fixed;
+  z-index:90;
+  left:50%;
+  bottom:34px;
+  transform:translate(-50%,12px) scale(.96);
+  padding:10px 14px;
+  border:1px solid rgba(114,201,255,.15);
+  border-radius:14px;
+  background:rgba(10,14,19,.96);
+  color:#dce7f0;
+  font-size:12px;
+  box-shadow:0 18px 44px rgba(0,0,0,.46),0 0 24px rgba(70,171,255,.13);
+  opacity:0;
+  pointer-events:none;
+  transition:
+    opacity 170ms ease,
+    transform 280ms cubic-bezier(.16,1,.3,1);
+}
+.image-upload-toast.is-open{
+  opacity:1;
+  transform:translate(-50%,0) scale(1);
+}
+
+
+/* v1.6.1 — larger selection toolbar + larger More menu text */
+
+
+
+#format-more{
+  font-size:18px;
+  letter-spacing:.02em;
+}
+
+
+
+
+/* v1.7 — polished Share flow */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.toggle-switch{
+  flex:none;
+  width:42px;
+  height:25px;
+  padding:3px;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.toggle-switch span{
+  display:block;
+  width:19px;
+  height:19px;
+  border-radius:50%;
+  background:#b7c3cf;
+  transform:translateX(0);
+  transition:
+    transform 310ms cubic-bezier(.16,1,.3,1),
+    background 190ms ease,
+    box-shadow 220ms ease;
+}
+.toggle-switch[aria-pressed="true"]{
+  background:rgba(62,170,255,.22);
+  box-shadow:
+    0 0 18px rgba(62,170,255,.18),
+    inset 0 0 0 1px rgba(126,207,255,.14);
+}
+.toggle-switch[aria-pressed="true"] span{
+  transform:translateX(17px);
+  background:#dff3ff;
+  box-shadow:0 0 12px rgba(119,206,255,.42);
+}
+
+
+
+
+
+
+
+
+
+
+
+.people-section{padding:14px;}
+
+.person-row{
+  display:grid;
+  grid-template-columns:34px 1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+.initial-blue{color:#78cbff;}
+.person-copy strong{
+  display:block;
+  font-size:12px;
+}
+.person-copy small{
+  color:#74808c;
+  font-size:9px;
+}
+
+
+
+
+
+
+
+
+
+
+/* Shared guest-view preview */
+
+
+
+
+
+#shared-login-cta{
+  padding:8px 11px;
+  border-radius:10px;
+  color:#dff3ff;
+  background:rgba(70,171,255,.09);
+  border:1px solid rgba(112,200,255,.12);
+  font-size:10px;
+}
+#shared-preview-close{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  color:#73808c;
+  font-size:17px;
+}
+#shared-preview-close:hover{
+  color:#fff;
+  background:rgba(255,255,255,.05);
+}
+
+/* Guest preview locks the note editor visually. */
+
+
+
+
+@media (max-width:760px){
+  
+  
+  
+  
+  
+  
+  
+  
+  #shared-login-cta{
+    grid-column:1 / -1;
+    grid-row:2;
+  }
+}
+
+/* v1.7.1 — clearer corner illumination for secondary menus/buttons */
+
+/* More menu: Highlight color / Remove highlight */
+
+
+
+
+
+
+
+/* Permission dropdown choices in Share flow */
+
+
+
+/* Share action buttons get slightly clearer edges too */
+#shared-login-cta{
+  border:1px solid transparent;
+}
+#shared-login-cta:hover{
+  border-color:rgba(114,201,255,.22);
+  box-shadow:
+    0 0 0 1px rgba(114,201,255,.06),
+    0 0 22px rgba(70,171,255,.14);
+}
+
+
+/* v1.7.2 — larger desktop Share sheet + softer copied feedback */
+@media (min-width:761px){
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  .person-row{
+    grid-template-columns:38px 1fr auto;
+  }
+  
+  .person-copy strong{
+    font-size:13px;
+  }
+  .person-copy small{
+    font-size:10px;
+  }
+  
+  
+  
+}
+
+/* Copy Link feedback: text crossfades, button blooms, then settles. */
+
+
+
+
+
+@keyframes arvioCopiedPulse{
+  0%{
+    transform:scale(.975);
+    box-shadow:0 0 16px rgba(103,224,162,.10);
+  }
+  55%{
+    transform:scale(1.018);
+    box-shadow:
+      0 0 0 1px rgba(133,229,178,.10),
+      0 0 42px rgba(103,224,162,.30),
+      0 11px 28px rgba(0,0,0,.20);
+  }
+  100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 0 1px rgba(133,229,178,.08),
+      0 0 34px rgba(103,224,162,.24),
+      0 10px 26px rgba(0,0,0,.18);
+  }
+}
+
+/* v1.7.3 — active navigation icons fill solid white, inactive stays outline */
+.nav-icon svg{
+  overflow:visible;
+}
+.nav-icon .icon-outline, .nav-icon .icon-fill{
+  transform-origin:50% 50%;
+  transition:
+    opacity 190ms cubic-bezier(.2,.8,.2,1),
+    transform 300ms cubic-bezier(.16,1,.3,1);
+}
+.nav-icon .icon-outline{
+  opacity:1;
+  transform:scale(1);
+}
+.nav-icon .icon-fill{
+  opacity:0;
+  transform:scale(.82);
+  fill:currentColor;
+  stroke:none;
+}
+.nav-icon .icon-fill .icon-cut{
+  fill:none;
+  stroke:#081018;
+  stroke-width:1.55;
+  stroke-linecap:round;
+}
+.nav-icon .icon-fill .icon-cut-fill{
+  fill:#081018;
+}
+
+/* Selected section: swap from outline -> filled icon with a tiny soft bloom. */
+.nav-item.active .nav-icon .icon-outline{
+  opacity:0;
+  transform:scale(.86);
+}
+.nav-item.active .nav-icon .icon-fill{
+  opacity:1;
+  transform:scale(1);
+}
+.nav-item.active .nav-icon{
+  color:#ffffff;
+  filter:
+    drop-shadow(0 0 5px rgba(220,242,255,.82))
+    drop-shadow(0 0 11px rgba(77,183,255,.36));
+}
+
+/* Once it is no longer selected, it returns cleanly to the thin outline state. */
+.nav-item:not(.active) .nav-icon{
+  color:currentColor;
+  filter:none;
+}
+.nav-item:not(.active):hover .nav-icon{
+  color:#c7eaff;
+  filter:drop-shadow(0 0 7px rgba(77,183,255,.20));
+}
+
+/* Keep the filled icon stable during the post-click selected-hover state. */
+.nav-item.active:hover .nav-icon .icon-fill{
+  transform:scale(1.035);
+}
+.nav-item.active:hover .nav-icon .icon-outline{
+  opacity:0;
+}
+
+/* v1.8 — Share desktop readability pass */
+@media (min-width:761px){
+  
+  
+  
+  
+  
+  
+  
+  
+  .person-copy strong{font-size:14px;}
+  .person-copy small{font-size:11px;}
+  
+  
+}
+
+/* v1.8 — polished authentication flow */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@keyframes authButtonBloom{
+  0%{
+    transform:scale(.965);
+    box-shadow:0 0 18px rgba(70,171,255,.14);
+  }
+  45%{
+    transform:scale(1.016);
+    box-shadow:
+      0 0 0 1px rgba(170,224,255,.10),
+      0 0 46px rgba(70,171,255,.40),
+      inset 0 0 24px rgba(70,171,255,.12);
+  }
+  100%{
+    transform:scale(1);
+    box-shadow:0 0 30px rgba(70,171,255,.22);
+  }
+}
+
+
+
+@keyframes authRipple{
+  0%{opacity:.44;transform:translate(-50%,-50%) scale(0)}
+  60%{opacity:.10;transform:translate(-50%,-50%) scale(18)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(24)}
+}
+
+
+
+
+
+
+
+
+
+@keyframes authSuccessFlash{
+  0%{border-color:rgba(114,201,255,.14)}
+  40%{
+    border-color:rgba(157,224,255,.34);
+    box-shadow:
+      0 30px 80px rgba(0,0,0,.35),
+      0 0 54px rgba(70,171,255,.20);
+  }
+  100%{border-color:var(--border)}
+}
+
+
+
+/* v1.8.1 — larger auth typography */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* v1.8.3 — brighter filled buttons get a bolder label weight */
+.primary-btn{
+  font-weight:700 !important;
+  letter-spacing:-.01em;
+}
+
+
+/* Keep the text optically strong and centered on light buttons */
+.primary-btn, .primary-btn span{
+  text-rendering:geometricPrecision;
+}
+
+/* v1.8.4 — share path fix + brighter share meta text */
+
+
+
+/* v1.8.5 — stronger Share button hover illumination in note header */
+
+
+
+
+
+/* v1.8.7 — auth back button spacing/placement refinement */
+
+
+
+
+
+
+
+
+/* v1.8.8 — share footnote removed */
+
+
+/* v1.9 — Profile + Logout flow */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Logout confirmation styles moved to dialogs.css in v2.6.5. */
+
+/* v1.9.1 — uploaded Arvio logo */
+
+
+
+
+
+
+
+
+
+
+/* Keep logo containers visually aligned after switching from text to image */
+.brand, .logo, .sidebar-logo, .sidebar-brand, .app-logo, .top-brand{
+  display:inline-flex;
+  align-items:center;
+  line-height:1;
+}
+
+
+
+/* v1.9.2 — logo sizing & positioning polish */
+
+
+
+
+
+
+.brand-side{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  padding:2px 14px 16px 12px;
+  margin-bottom:2px;
+}
+
+
+.mobile-brand{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+}
+
+
+/* Make the logo feel optically crisp on the dark UI */
+
+
+
+
+/* v1.9.3 — logo positioning refinements requested by user */
+
+/* Desktop sidebar: keep the logo tucked in the upper-left, smaller and calmer */
+.brand-side{
+  padding:0 10px 10px 10px !important;
+  margin:0 0 4px 0 !important;
+  align-self:flex-start;
+}
+
+
+/* Loading screen: larger logo, left-leaning layout like the earlier feel */
+
+
+
+
+
+
+
+
+/* v1.9.4 — logo crop + loading/auth composition polish */
+
+/* Loading: centered again, with a larger wordmark. */
+
+
+
+
+
+
+/* Auth: the logo should feel intentional, not tiny.
+   Keep it aligned with the left-aligned content. */
+
+
+
+/* Sidebar stays compact now that the source image is tightly cropped. */
+
+
+/* Mobile topbar gets a compact but readable version. */
+
+
+
+
+/* v1.9.6 — desktop topbar logo removal + softer logo presence */
+
+/* On desktop we don't need the extra topbar/home-area logo. Keep branding only in the sidebar. */
+@media (min-width:761px){
+  .mobile-brand{
+    display:none !important;
+  }
+}
+
+/* The uploaded logo is a very thin handwritten mark, so at small sizes it can look too sharp.
+   Give it a slightly softer presence without making it blurry. */
+
+
+
+
+
+
+/* v1.9.9 — simplify login screen header
+   User requested to remove both "WELCOME BACK" and "Log in to Arvio." */
+
+
+
+
+
+
+
+
+
+/* v1.9.10 — login screen vertical rhythm fix
+   After removing the big login heading, the old spacing made the screen feel empty/disconnected.
+   Compact the login-only composition without changing the rest of the auth flow. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Keep the content visually tied together instead of floating in a tall card. */
+
+
+
+
+/* v1.9.11 — welcome heading uses enlarged logo instead of text wordmark */
+
+
+
+
+
+
+
+
+/* v1.9.12 — auth back button moved further left */
+
+
+
+
+
+
+/* v1.9.13 — welcome screen branding cleanup
+   User wants the welcome/logo lockup to be the main brand moment:
+   - remove the small top logo on the main welcome screen
+   - make the large welcome logo bigger
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+/* v1.9.14 — larger entry welcome logo */
+
+
+
+
+
+
+/* v1.9.15 — welcome logo alignment + color harmony */
+
+
+
+
+
+
+
+
+/* v1.9.16 — home screen softness pass
+   The Home page felt too sharp/high-contrast from afar.
+   Soften the typography and cards without changing the layout. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* v1.9.17 — sidebar logo expanded across the row
+   Make the desktop sidebar logo feel fuller across its row. */
+.brand-side{
+  width:100%;
+  padding:0 4px 12px 6px !important;
+  margin:0 0 6px 0 !important;
+}
+
+
+
+@media (max-width:760px){
+  /* keep mobile top branding unchanged */
+  .brand-side{
+    padding:0 !important;
+    width:auto;
+  }
+}
+
+
+/* v2.0 — iPhone / PWA foundation
+   iPhone 16 Pro-first, but uses safe-area variables rather than hard-coded notch sizes. */
+
+:root{
+  --arvio-keyboard-inset:0px;
+}
+
+/* Full-bleed dark canvas behind Dynamic Island / home indicator in standalone mode. */
+html, body{
+  background:#050608;
+}
+body{
+  min-height:100dvh;
+}
+
+/* Splash gets a real app-launch handoff rather than simply disappearing. */
+
+
+
+
+
+@keyframes arvioSplashBreathe{
+  from{opacity:.45;transform:scale(.78)}
+  to{opacity:.86;transform:scale(1.04)}
+}
+@keyframes arvioLogoLaunch{
+  0%{transform:scale(1);filter:brightness(1)}
+  45%{transform:scale(1.055);filter:brightness(1.12) drop-shadow(0 0 28px rgba(132,208,255,.16))}
+  100%{transform:scale(.985);filter:brightness(1)}
+}
+
+/* Auth enters softly if there isn't a remembered session. */
+
+
+
+/* Returning users: Home materializes underneath the splash in layers. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (max-width:760px){
+  body{
+    padding-top:env(safe-area-inset-top);
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+
+  #workspace, .main{
+    min-height:calc(100dvh - env(safe-area-inset-top));
+  }
+
+  
+
+  .page{
+    padding:
+      26px
+      max(20px,env(safe-area-inset-right))
+      calc(122px + env(safe-area-inset-bottom))
+      max(20px,env(safe-area-inset-left));
+  }
+
+  /* Liquid-glass inspired floating nav, retaining Arvio's icy illumination language. */
+  
+  
+  
+  
+  
+  
+  
+  
+
+  /* Note pages are writing-first: breadcrumbs replace global bottom navigation. */
+  
+  
+
+  /* Touch-friendly library hierarchy. */
+  
+/* Slash commands become a half-height keyboard-aware floating bubble. */
+  
+  
+  
+  
+
+  /* Custom selection toolbar remains a compact Arvio bubble near the selected words. */
+  
+
+  /* Bottom sheets deliberately feel native on phone. */
+  
+
+  
+
+  /* iPhone touch feedback: every main control acknowledges the finger immediately. */
+  button{
+    touch-action:manipulation;
+  }
+  button:active{
+    transition-duration:90ms !important;
+  }
+}
+
+
+
+/* Standalone mode gets a touch more top breathing room around the safe area. */
+
+
+
+
+
+/* v2.0.1 — WhatsApp-iOS-like travelling liquid-glass nav capsule */
+@media (max-width:760px){
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  @keyframes arvioGlassSweepRight{
+    0%{left:-42%;opacity:0}
+    28%{opacity:.85}
+    100%{left:104%;opacity:0}
+  }
+  @keyframes arvioGlassSweepLeft{
+    0%{right:-42%;opacity:0}
+    28%{opacity:.85}
+    100%{right:104%;opacity:0}
+  }
+
+  
+
+  /* The shared capsule supplies the selected background. The button only
+     carries icon/text state so the glass visibly travels underneath it. */
+  
+
+  
+
+  
+
+  
+}
+
+
+
+
+/* v2.0.2 — mobile bottom nav: icon-only
+   On phone, Home / Library / Profile labels are hidden.
+   The icons become larger and better proportioned inside the liquid-glass bar. */
+
+
+
+/* v2.0.7 — launch-state clarification + smooth Splash -> Home handoff */
+
+/* The loading screen is an overlay, not a separate document row.
+   This lets the destination animate UNDER it instead of appearing only
+   after it vanishes. */
+
+
+/* Slightly slower departure so the reveal feels intentional instead of "TEK". */
+
+
+
+
+@keyframes arvioLaunchLogoRelease{
+  0%{
+    opacity:1;
+    transform:scale(1);
+    filter:brightness(1) drop-shadow(0 0 0 rgba(126,202,255,0));
+  }
+  30%{
+    opacity:1;
+    transform:scale(1.055);
+    filter:brightness(1.14) drop-shadow(0 0 28px rgba(126,202,255,.17));
+  }
+  68%{
+    opacity:.72;
+    transform:scale(1.025);
+    filter:brightness(1.08) drop-shadow(0 0 34px rgba(126,202,255,.10));
+  }
+  100%{
+    opacity:.12;
+    transform:scale(.985);
+    filter:brightness(1) drop-shadow(0 0 18px rgba(126,202,255,.025));
+  }
+}
+
+
+
+/* Whole workspace now has its own entrance, so even the large black canvas,
+   sidebar/topbar region, and content feel like one scene opening. */
+
+
+
+
+/* Layered entrance underneath the overall workspace reveal. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Logged-out launch: Auth also begins underneath the splash instead of
+   popping in only after the logo disappears. */
+
+
+
+
+
+
+
+
+@media (max-width:760px){
+  /* On iPhone the Home scene enters slightly more vertically, which feels
+     more natural beneath the centered splash logo. */
+  
+
+  
+
+  
+
+  
+}
+
+
+
+
+/* v2.1.0 — consolidated mobile liquid-glass navigation interaction
+   This block replaces v2.0.3–v2.0.6 and v2.0.8–v2.0.12 reaction overrides.
+
+   Visual model:
+   1. Resting glass = dark + genuinely transparent.
+   2. Selected icon = small center-out illumination only.
+   3. Pointer-down = instant bright pressure bloom.
+   4. Bloom drops quickly, then eases continuously into the resting state.
+   5. No legacy click animation, sticky mobile hover, or :active transform
+      is allowed to fight this animation. */
+@media (max-width:760px){
+
+  
+
+  /* Static glass reflection. */
+  
+
+  /* Whole-piece transient light field. */
+  
+
+  /* The moving selector remains dark/transparent — it is structure, not the flash. */
+  
+
+  
+
+  
+
+  
+
+  /* Disable legacy generic feedback on nav defensively, even if a class ever leaks in. */
+  
+
+  /* iOS/touch can leave :hover sticky after a tap. Never let that change
+     brightness/scale on the mobile nav. */
+  
+
+  
+
+  
+
+  /* Native :active is also neutralized; the dedicated impact animation owns pressure. */
+  
+
+  
+
+  
+
+  /* Resting selected state:
+     light starts at the CENTER of the icon and fades outward,
+     but the surrounding bar stays dark. */
+  
+
+  
+
+  /* Local temporary pressure light around the touched icon.
+     Base state is EXACTLY invisible. */
+  
+
+  /* Icon itself remains above the temporary membrane. */
+  
+
+  /* PRESS: immediate JEDAR, then fast early falloff + smooth dark tail.
+     The final ~25% of the animation is already visually at rest. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  @keyframes arvioNavBarImpact_v21{
+    0%{
+      transform:translateY(-1px) scaleX(1.014) scaleY(1.056);
+    }
+    18%{
+      transform:translateY(-.55px) scaleX(1.009) scaleY(1.034);
+    }
+    45%{
+      transform:translateY(-.12px) scaleX(1.003) scaleY(1.010);
+    }
+    72%,100%{
+      transform:translateY(0) scaleX(1) scaleY(1);
+    }
+  }
+
+  @keyframes arvioNavBarBloom_v21{
+    0%{
+      opacity:1;
+      transform:scale(1.052);
+      filter:blur(4.5px) saturate(116%);
+    }
+    12%{
+      opacity:.70;
+      transform:scale(1.039);
+      filter:blur(5.3px) saturate(112%);
+    }
+    27%{
+      opacity:.38;
+      transform:scale(1.025);
+      filter:blur(6.2px) saturate(108%);
+    }
+    45%{
+      opacity:.17;
+      transform:scale(1.012);
+      filter:blur(7px) saturate(104%);
+    }
+    62%{
+      opacity:.065;
+      transform:scale(1.004);
+      filter:blur(8px) saturate(102%);
+    }
+    76%{
+      opacity:.020;
+      transform:scale(1);
+      filter:blur(9px) saturate(100%);
+    }
+    88%,100%{
+      opacity:0;
+      transform:scale(1);
+      filter:blur(10px) saturate(100%);
+    }
+  }
+
+  @keyframes arvioNavItemImpact_v21{
+    0%{transform:scale(1.060)}
+    18%{transform:scale(1.040)}
+    46%{transform:scale(1.012)}
+    72%,100%{transform:scale(1)}
+  }
+
+  @keyframes arvioNavItemBloom_v21{
+    0%{
+      opacity:1;
+      transform:translate(-50%,-50%) scale(1.11);
+      filter:blur(3.7px) brightness(1.14);
+    }
+    11%{
+      opacity:.74;
+      transform:translate(-50%,-50%) scale(1.075);
+      filter:blur(4.4px) brightness(1.08);
+    }
+    25%{
+      opacity:.43;
+      transform:translate(-50%,-50%) scale(1.042);
+      filter:blur(5.1px) brightness(1.04);
+    }
+    43%{
+      opacity:.19;
+      transform:translate(-50%,-50%) scale(1.018);
+      filter:blur(6px) brightness(1.018);
+    }
+    61%{
+      opacity:.070;
+      transform:translate(-50%,-50%) scale(1.003);
+      filter:blur(6.9px) brightness(1.006);
+    }
+    76%{
+      opacity:.020;
+      transform:translate(-50%,-50%) scale(.992);
+      filter:blur(7.7px) brightness(1);
+    }
+    88%,100%{
+      opacity:0;
+      transform:translate(-50%,-50%) scale(.98);
+      filter:blur(8px) brightness(1);
+    }
+  }
+
+  @keyframes arvioNavIconImpact_v21{
+    0%{transform:scale(1.105)}
+    20%{transform:scale(1.068)}
+    48%{transform:scale(1.018)}
+    74%,100%{transform:scale(1)}
+  }
+}
+
+
+
+
+/* v2.1.2 — mobile Home-launch nav bubble entrance
+   The floating nav should not simply "appear" after Splash -> Home.
+   It now pops in like one soft glass bubble while the splash is fading. */
+@media (max-width:760px){
+
+  /* Hold the nav fully hidden before the Home entrance actually starts. */
+  
+
+  /* One continuous bubble-pop. Final keyframe EXACTLY equals resting state,
+     so removing the splash classes cannot create another visual "tek". */
+  
+
+  @keyframes arvioMobileNavLaunchBubble{
+    0%{
+      opacity:0;
+      transform:translateY(30px) scale(.72);
+      filter:blur(8px);
+      box-shadow:
+        0 8px 20px rgba(0,0,0,.18),
+        0 0 0 rgba(80,177,245,0),
+        inset 0 1px 0 rgba(255,255,255,.02);
+    }
+
+    36%{
+      opacity:.82;
+      transform:translateY(7px) scale(1.025);
+      filter:blur(1.8px);
+      box-shadow:
+        0 18px 42px rgba(0,0,0,.34),
+        0 0 24px rgba(80,177,245,.055),
+        inset 0 1px 0 rgba(255,255,255,.068);
+    }
+
+    61%{
+      opacity:1;
+      transform:translateY(-1px) scale(1.045);
+      filter:blur(0);
+      box-shadow:
+        0 18px 44px rgba(0,0,0,.35),
+        0 0 30px rgba(80,177,245,.065),
+        inset 0 1px 0 rgba(255,255,255,.072);
+    }
+
+    79%{
+      opacity:1;
+      transform:translateY(.5px) scale(.992);
+      filter:blur(0);
+      box-shadow:
+        0 15px 36px rgba(0,0,0,.33),
+        0 0 17px rgba(80,177,245,.032),
+        inset 0 1px 0 rgba(255,255,255,.058);
+    }
+
+    100%{
+      opacity:1;
+      transform:translateY(0) scale(1);
+      filter:blur(0);
+      box-shadow:
+        0 14px 34px rgba(0,0,0,.32),
+        0 0 0 1px rgba(92,178,244,.012),
+        inset 0 1px 0 rgba(255,255,255,.055),
+        inset 0 -1px 0 rgba(0,0,0,.18);
+    }
+  }
+
+  /* The selected liquid capsule becomes visible a fraction later, so the
+     container feels like it forms first, then its contents settle inside it. */
+  
+
+  
+
+  @keyframes arvioMobileNavIndicatorReveal{
+    0%{
+      opacity:0;
+      filter:blur(5px) brightness(1.08);
+    }
+    55%{
+      opacity:.84;
+      filter:blur(.7px) brightness(1.04);
+    }
+    100%{
+      opacity:1;
+      filter:blur(0) brightness(1);
+    }
+  }
+
+  /* Icons softly resolve inside the glass instead of all switching on at once. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  @keyframes arvioMobileNavIconReveal{
+    0%{
+      opacity:0;
+      filter:blur(3px);
+    }
+    55%{
+      opacity:1;
+      filter:blur(.4px);
+    }
+    100%{
+      opacity:1;
+      filter:blur(0);
+    }
+  }
+}
+
+
+
+
+/* v2.1.3 — bottom-sheet safe-area breathing room on mobile
+   Bottom popups should float with a little space above the iPhone home indicator,
+   not feel glued to the very bottom edge. */
+
+
+
+/* v2.1.4 — visible persisted-session nav launch + larger sheet bottom gap */
+@media (max-width:760px){
+
+  /* During Splash -> Home for an EXISTING session, keep the nav dormant
+     until JS explicitly says the splash is translucent enough. */
+  
+
+  
+
+  /* Once splash-nav-reveal arrives, the bubble-pop happens in the visible
+     part of the Splash -> Home handoff instead of behind the black overlay. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Bottom sheets float clearly above the iPhone home-indicator region.
+     max() gives a useful gap even in desktop/mobile emulation where safe-area=0. */
+  
+
+  /* Since the whole sheet now sits ABOVE the safe area, don't count the safe
+     area again inside the sheet's own padding. */
+  
+}
+
+
+/* v2.1.5 — persisted-session launch hardening */
+
+/* Structural fix:
+   #workspace { display:grid } has ID specificity and was overriding
+   .screen { display:none }. The workspace was therefore laid out behind the
+   loading screen even before it became active. */
+#workspace.screen:not(.active){
+  display:none !important;
+}
+#workspace.screen.active{
+  display:grid !important;
+}
+
+@media (max-width:760px){
+
+  /* Existing-session Splash -> Home nav is now JS/WAAPI-driven.
+     Never let the older CSS launch animations compete with it. */
+  
+
+  /* While the splash is still covering Home, the JS-prepared inline state
+     owns opacity/transform. These selectors prevent older launch rules from
+     forcing the nav visible. */
+  
+}
+
+
+/* v2.2.0 — Mobile Note Editor Pass
+   iPhone-first writing experience: safe-area toolbar, thumb-friendly actions,
+   keyboard-aware bubbles, calmer writing canvas, and satisfying controls. */
+
+
+
+
+
+
+
+
+@media (max-width:760px){
+
+  /* Note mode is its own focused writing surface.
+     The global topbar gets out of the way; breadcrumb becomes navigation. */
+  
+
+  
+
+  /* Sticky note header — dark glass, but quiet enough not to compete with writing. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Writing canvas */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  @keyframes arvioSavingDot{
+    from{opacity:.30;transform:scale(.78)}
+    to{opacity:1;transform:scale(1.08)}
+  }
+
+  
+
+  
+
+  
+
+  
+
+  /* When keyboard/focus is active, the header becomes a tiny bit more compact
+     but remains reachable for breadcrumb / undo / redo. */
+  
+
+  
+
+  
+
+  /* Selection formatting bubble — fixed to the visible viewport so iOS keyboard
+     changes cannot strand it outside the screen. */
+  
+
+  
+
+  
+
+  
+
+  /* Slash command bubble: half-screen, keyboard-aware, one continuous piece. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Internal-link picker becomes another keyboard-aware bubble rather than an
+     absolute desktop popup that can disappear behind the iOS keyboard. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* More / highlight palette also remain visible above the keyboard. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Inline images are easy to select and resize by thumb. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Save/image feedback must stay above keyboard/home indicator. */
+  .image-upload-toast{
+    bottom:calc(var(--arvio-keyboard-inset) + max(18px,env(safe-area-inset-bottom))) !important;
+  }
+}
+
+
+
+
+
+
+/* v2.3.0 — Library Mobile Pass */
+
+.filter-icon, .search-icon{
+  display:grid;
+  place-items:center;
+  flex:none;
+}
+.filter-icon svg, .search-icon svg{
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Library sort chooser */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@keyframes arvioLibraryReturnFocus{
+  0%{
+    box-shadow:0 0 0 rgba(81,181,248,0);
+  }
+  35%{
+    box-shadow:
+      0 0 0 1px rgba(138,211,255,.09),
+      0 0 32px rgba(81,181,248,.18);
+  }
+  100%{
+    box-shadow:0 0 0 rgba(81,181,248,0);
+  }
+}
+
+@media (max-width:760px){
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Sticky mobile search/filter dock. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Thumb-friendly hierarchy. */
+  
+
+  
+
+
+
+  
+
+  
+/* Hierarchy guide line */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+  /* Search results */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Filter becomes a proper floating iPhone bottom sheet. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+}
+
+
+
+
+
+
+/* v2.3.1 — note toolbar alignment + desktop Share fix */
+
+/* Desktop note toolbar now aligns with the editor column and reads as one control row. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Keep actions aligned and visually balanced. */
+
+
+
+
+
+
+/* Desktop Share bug fix:
+   .share-person-icon uses display:grid, which made it behave like a block next
+   to the label. The button now explicitly owns the horizontal layout. */
+
+
+
+
+
+
+
+
+@media (max-width:760px){
+  /* Mobile remains compact; breadcrumb gets the available width and action buttons stay aligned. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+}
+
+
+/* v2.3.2 — iOS rounded corners pass */
+
+
+.primary-btn, .secondary-btn{border-radius:16px !important;}
+.nav-item{border-radius:16px !important;}
+.quick-access button{border-radius:13px !important;}
+.icon-btn{border-radius:14px !important;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (min-width:761px){
+}
+
+
+
+
+/* v2.3.3 — radius hierarchy system
+   Apple-like corner language:
+   - large containers: softest / roundest
+   - cards & primary controls: medium-large
+   - buttons / rows: medium
+   - chips / breadcrumbs / compact controls: smaller
+*/
+:root{
+  --radius-shell:30px;
+  --radius-card:22px;
+  --radius-control:17px;
+  --radius-compact:12px;
+}
+
+/* LARGE CONTAINERS / SHEETS */
+
+
+/* CARDS / BIG RECTANGULAR SURFACES */
+
+
+/* PRIMARY CONTROLS / INPUTS / ROWS */
+.primary-btn, .secondary-btn{
+  border-radius:var(--radius-control) !important;
+}
+
+/* COMPACT CONTROLS */
+.icon-btn, .quick-access button{
+  border-radius:var(--radius-compact) !important;
+}
+
+/* MOBILE gets slightly softer geometry because controls are physically larger. */
+@media (max-width:760px){
+  :root{
+    --radius-shell:28px;
+    --radius-card:21px;
+    --radius-control:18px;
+    --radius-compact:13px;
+  }
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+}
+
+/* Desktop search/filter specifically follows Apple's soft-rectangle look. */
+
+
+
+/* v2.3.5 — Mobile layout + logo crispness polish */
+
+/* Keep glow on wrappers, not directly on raster logo pixels. */
+.brand-side-logo-wrap{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+  position:relative;
+}
+
+.brand-side-logo-wrap::before{
+  content:"";
+  position:absolute;
+  inset:18% 8%;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(179,225,255,.10),rgba(179,225,255,0) 72%);
+  filter:blur(16px);
+  pointer-events:none;
+}
+
+.brand-side-logo{
+  position:relative;
+  z-index:1;
+  image-rendering:auto;
+  filter:none !important;
+  opacity:1;
+  transform:translateZ(0);
+}
+
+/* Desktop remains essentially unchanged except crisper logo rendering. */
+
+
+.brand-side-logo{
+  width:136px;
+  max-width:100%;
+  height:auto;
+}
+
+@media (max-width:760px){
+
+  /* Global mobile safe-area composition */
+  
+
+  
+
+  
+
+  
+
+  .page{
+    padding-left:22px !important;
+    padding-right:22px !important;
+  }
+
+  /* In-app brand row */
+  .mobile-app-brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin:
+      calc(max(8px,env(safe-area-inset-top)) + 8px)
+      0
+      34px;
+  }
+
+  .brand-side-logo-wrap{
+    width:auto;
+    max-width:142px;
+  }
+
+  .brand-side-logo{
+    width:142px;
+  }
+
+  /* Auth */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Home */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Library */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Profile */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Bottom nav — keep it visually detached from content */
+  
+
+  /* Ensure content never hides behind nav */
+  
+}
+
+
+/* v2.3.6 — critical mobile workspace width fix
+   Root cause: the old desktop rule `#workspace.screen.active{display:grid!important}`
+   was overriding the mobile `#workspace{display:block}` rule. That left the
+   hidden 250px desktop sidebar grid column reserved on iPhone, so `.main`
+   occupied only the second half of the viewport while the fixed bottom nav
+   still spanned the full screen. */
+
+@media (max-width:760px){
+  #workspace.screen.active{
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    height:auto !important;
+    overflow:visible !important;
+  }
+
+  #workspace{
+    grid-template-columns:none !important;
+  }
+
+  #workspace .sidebar{
+    display:none !important;
+  }
+
+  #workspace .main{
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    margin:0 !important;
+    grid-column:1 / -1 !important;
+  }
+
+  #workspace .page{
+    width:100% !important;
+    max-width:none !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  
+}
+
+
+/* v2.3.7 — mobile profile badge top-right restore */
+
+
+
+
+/* ==========================================================
+   v2.4.0 — Product polish pass
+   ========================================================== */
+
+/* HOME — silver primary action */
+
+
+
+
+
+/* HOME — icy-blue edge glow that fades darker toward the center */
+
+
+
+
+/* NOTE — breadcrumb left, history below, Share upper-right */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Formatting bubble stays above native editing callout; secondary menus stack above it. */
+
+
+
+/* Status-area protection: clearer downward, darker/blurred right under iOS status icons. */
+
+
+@media (max-width:760px){
+  /* Nav stabilization + lower resting position */
+  
+  
+  
+
+  /* Compact top composition: profile remains far top-right without a tall empty row. */
+  
+  
+  
+  
+  
+
+  /* iOS Safari zooms focused inputs below 16px. */
+  
+
+  /* Note toolbar mobile */
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  /* Override earlier mobile bottom-anchoring for these selection popovers. */
+  
+
+  /* Scroll/status scrim */
+  
+  
+
+  /* Auth pages remain viewport-contained and unscrollable. */
+  
+  
+  
+}
+
+
+/* ==========================================================
+   v2.5.0 — premium controls + creation flow
+   ========================================================== */
+
+/* SHARE NOTE — larger typography everywhere */
+
+
+
+
+
+
+
+
+.person-copy strong{
+  font-size:15px !important;
+}
+.person-copy small{
+  font-size:12px !important;
+}
+
+
+
+/* PREMIUM CONTROL LANGUAGE
+   Calm precision glass instead of loud prototype/neon controls. */
+:root{
+  --control-border:rgba(231,242,249,.095);
+  --control-border-hover:rgba(225,241,251,.16);
+  --control-bg:rgba(255,255,255,.030);
+  --control-bg-hover:rgba(255,255,255,.050);
+  --control-shadow:
+    0 8px 22px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 0 rgba(0,0,0,.14);
+}
+
+.icon-btn, .secondary-btn{
+  border:1px solid var(--control-border) !important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.030),rgba(255,255,255,.008)),
+    var(--control-bg) !important;
+  color:#c8d1d8 !important;
+  box-shadow:var(--control-shadow) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(112%);
+  backdrop-filter:blur(16px) saturate(112%);
+  transition:
+    transform 180ms cubic-bezier(.2,.8,.2,1),
+    background 220ms ease,
+    border-color 220ms ease,
+    color 190ms ease,
+    box-shadow 260ms ease !important;
+}
+
+.icon-btn:hover, .secondary-btn:hover{
+  transform:translateY(-1px);
+  color:#f3f7fa !important;
+  border-color:var(--control-border-hover) !important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.050),rgba(255,255,255,.014)),
+    var(--control-bg-hover) !important;
+  box-shadow:
+    0 10px 25px rgba(0,0,0,.22),
+    0 0 0 1px rgba(214,235,248,.025),
+    inset 0 1px 0 rgba(255,255,255,.075),
+    inset 0 -1px 0 rgba(0,0,0,.16) !important;
+}
+
+.icon-btn:active, .secondary-btn:active{
+  transform:translateY(0) scale(.965) !important;
+  box-shadow:
+    0 3px 10px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 0 14px rgba(0,0,0,.16) !important;
+}
+
+/* Filled actions get a satin/silver finish rather than a bright plastic gradient. */
+.primary-btn{
+  border:1px solid rgba(255,255,255,.68) !important;
+  color:#0b1116 !important;
+  background:
+    linear-gradient(180deg,#f3f5f6 0%,#d7dde1 48%,#bec7cd 100%) !important;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.22),
+    0 0 20px rgba(216,234,244,.10),
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(67,80,90,.16) !important;
+  font-weight:670 !important;
+  transition:
+    transform 180ms cubic-bezier(.2,.8,.2,1),
+    filter 220ms ease,
+    box-shadow 260ms ease !important;
+}
+.primary-btn:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.035);
+  box-shadow:
+    0 13px 30px rgba(0,0,0,.25),
+    0 0 24px rgba(216,234,244,.14),
+    inset 0 1px 0 #fff,
+    inset 0 -1px 0 rgba(67,80,90,.14) !important;
+}
+.primary-btn:active{
+  transform:scale(.975) !important;
+  filter:brightness(.97);
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.72),
+    inset 0 2px 9px rgba(48,59,67,.13) !important;
+}
+
+/* Logout destructive styling is owned by dialogs.css. */
+/* STATUS AREA — shorter veil, true spatial fade:
+   bottom = clear; moving upward = progressively darker + blurrier. */
+
+
+/* RETURNING SESSION — nav is already settled under splash.
+   Fancy bubble entrance remains exclusive to the first post-login transition. */
+
+
+/* NEW NOTE destination page */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (max-width:760px){
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Share sheet stays readable on iPhone without becoming cramped. */
+  
+  
+  
+  
+  
+  
+  .person-copy strong{
+    font-size:14px !important;
+  }
+  .person-copy small{
+    font-size:11px !important;
+  }
+  
+}
+
+
+/* ==========================================================
+   v2.5.1 — typography + premium card illumination refinement
+   ========================================================== */
+
+/* CREATE NOTE PAGE — larger typography */
+
+
+
+
+
+
+
+
+
+
+
+/* PROFILE — increase typographic presence */
+
+
+
+
+
+
+
+
+
+/* HOME PRIMARY CTA — more confident text weight */
+
+
+
+/* HOME SECONDARY CARDS
+   Less outline-heavy, more premium icy-blue MATERIAL glow from inside the card. */
+
+
+
+
+
+
+/* The "Continue" card has a slightly stronger material glow. */
+
+
+/* Typography inside blue cards */
+
+
+
+
+/* Hover = subtle material activation, not neon outline. */
+
+
+/* Press = slightly sink into the surface */
+
+
+
+
+
+/* ==========================================================
+   v2.5.2 — chosen-state creation controls + blue underglow
+   ========================================================== */
+
+/* ---------- HOME: visible blue "underglow" beneath cards ---------- */
+
+
+
+
+
+
+
+
+
+
+/* ---------- CREATE NOTE: explicit two-choice hierarchy ---------- */
+
+/* Common copy: descriptions are larger + a touch bolder. */
+
+
+/* START NEW TOPIC — default silver primary, same family as Home New Note. */
+#create-new-topic{
+  color:#0a1117 !important;
+  border:1px solid rgba(255,255,255,.68) !important;
+  background:
+    radial-gradient(115% 150% at 13% -22%,rgba(255,255,255,.96),transparent 47%),
+    linear-gradient(145deg,#f0f3f5 0%,#cad2d8 44%,#b4bec6 100%) !important;
+  box-shadow:
+    0 17px 34px rgba(0,0,0,.21),
+    0 0 27px rgba(216,235,246,.12),
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(69,82,92,.16) !important;
+}
+
+
+
+
+
+
+
+
+
+/* ADD EXISTING — dark lit default, with restrained blue underglow. */
+#create-existing-topic{
+  border:1px solid rgba(93,185,245,.19) !important;
+  background:
+    radial-gradient(115% 165% at 8% -20%,rgba(82,185,249,.105),transparent 57%),
+    linear-gradient(180deg,rgba(16,27,36,.85),rgba(7,12,17,.94)) !important;
+  box-shadow:
+    0 19px 32px -23px rgba(43,169,250,.34),
+    0 0 20px rgba(45,157,230,.075),
+    inset 0 1px 0 rgba(186,227,252,.052),
+    inset 0 0 19px rgba(65,172,239,.045) !important;
+}
+
+
+
+
+
+
+
+/* When Existing is chosen, Start New immediately becomes the subdued default surface. */
+#create-new-topic.is-demoted{
+  color:#c9d3da !important;
+  border-color:rgba(215,235,247,.085) !important;
+  background:
+    radial-gradient(100% 150% at 0% 0%,rgba(114,199,251,.040),transparent 56%),
+    linear-gradient(180deg,rgba(255,255,255,.027),rgba(255,255,255,.009)),
+    rgba(7,10,14,.74) !important;
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+
+
+
+
+
+/* Existing selected: same philosophy as bottom-nav chosen capsule,
+   stronger center-out icy light + brighter edge + underglow. */
+#create-existing-topic.is-selected{
+  border-color:rgba(92,197,255,.48) !important;
+  background:
+    radial-gradient(105% 155% at 50% 35%,rgba(134,219,255,.20),rgba(59,176,245,.105) 37%,transparent 66%),
+    radial-gradient(120% 150% at 10% -20%,rgba(87,194,255,.16),transparent 58%),
+    linear-gradient(180deg,rgba(15,34,46,.94),rgba(6,14,21,.97)) !important;
+  box-shadow:
+    0 22px 39px -18px rgba(48,181,255,.55),
+    0 34px 61px -32px rgba(33,140,229,.32),
+    0 0 31px rgba(47,173,250,.21),
+    inset 0 1px 0 rgba(218,243,255,.13),
+    inset 0 0 30px rgba(80,190,255,.12) !important;
+}
+
+
+
+
+
+/* Choice impact reaction before the dropdown unfolds. */
+
+
+
+@keyframes arvioCreateChoiceImpact{
+  0%{transform:scale(.978)}
+  36%{transform:scale(1.012)}
+  70%{transform:scale(.996)}
+  100%{transform:scale(1)}
+}
+@keyframes arvioCreateChoiceBloom{
+  0%{opacity:.96;filter:blur(1px);transform:scale(.985)}
+  34%{opacity:.64;filter:blur(3px);transform:scale(1.012)}
+  72%{opacity:.18;filter:blur(6px);transform:scale(1.022)}
+  100%{opacity:0;filter:blur(8px);transform:scale(1.026)}
+}
+
+/* Dropdown adopts the newer Library material language. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Mobile keeps the same hierarchy without becoming oversized. */
+
+
+
+
+
+/* ==========================================================
+   v2.5.3 — Library typography scale-up
+   ========================================================== */
+
+/* ALL NOTES header */
+
+
+
+
+/* In case ALL NOTES is plain text inside the results header */
+
+
+/* Folder / topic rows */
+
+
+
+
+/* Leaf note rows under expanded folders */
+
+
+
+
+/* Path / snippet text inside leaf notes */
+
+
+/* Bigger icon containers so the larger text doesn't look cramped */
+
+
+/* More breathing room in every row */
+
+
+
+
+/* Right-side chevrons */
+
+
+/* Search/filter header meta on the right, e.g. LATEST FIRST */
+
+
+@media (max-width:760px){
+  /* Mobile ALL NOTES becomes visibly readable rather than tiny */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+}
+
+
+/* ==========================================================
+   v2.5.4 — Proportional scale pass
+   Audit small text / compact controls across the app,
+   enlarge selectively, and rebalance oversized contrasts.
+   ========================================================== */
+
+/* General support text */
+.eyebrow{font-size:12px !important;letter-spacing:.17em !important;}
+.lead{font-size:17px !important;line-height:1.6 !important;color:#96a2ae !important;}
+.page .muted{font-size:17px !important;line-height:1.62 !important;}
+
+/* Auth */
+
+
+
+
+
+.primary-btn, .secondary-btn{min-height:56px !important;font-size:17px !important;font-weight:620 !important;}
+
+
+
+
+/* Home */
+
+
+
+
+
+
+
+
+.note-path, .saved{font-size:13px !important;line-height:1.45 !important;}
+
+
+
+
+
+
+/* Library top controls */
+
+
+
+
+
+
+
+
+
+
+/* Library list / tree */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Profile */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Create note */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Note editor */
+
+
+
+
+
+
+
+
+
+@media (max-width: 760px){
+  .eyebrow{font-size:11px !important;}
+  .lead{font-size:16px !important;}
+
+  
+  
+  .primary-btn, .secondary-btn{min-height:54px !important;font-size:16px !important;}
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  .note-path, .saved{font-size:12.5px !important;}
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+}
+
+
+
+
+
+
+
+
+/* ==========================================================
+   v2.6.0 — Canonical Library flow
+   One authoritative spacing layer replaces stacked Library patches.
+   ========================================================== */
+
+
+/* Header -> tools -> ALL NOTES use the SAME vertical rhythm. */
+
+
+
+
+
+
+
+
+/* Date grouping applies ONLY to top-level parents. */
+
+
+
+
+
+
+
+
+/* Critical reset: old tree-item margins were stacking with grid/date gaps. */
+
+
+
+
+
+
+/* Nested hierarchy stays compact; dates of children do not create visual groups. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================
+   v2.6.1 — Canonical desktop shell + Library layout
+   Refactor target: one source of truth for shell/sidebar geometry and
+   Library rhythm. Visual/glow rules remain reusable from earlier layers.
+   ========================================================== */
+
+@media (min-width:761px){
+  #workspace{
+    grid-template-columns:224px minmax(0,1fr);
+  }
+
+  .sidebar{
+    padding:24px 16px 22px;
+    gap:20px;
+  }
+
+  .brand-side{
+    padding:4px 12px 10px;
+    margin:0 0 6px;
+  }
+
+  
+
+  .primary-nav{
+    gap:7px;
+  }
+
+  .primary-nav .nav-item{
+    min-height:46px;
+    padding:11px 13px;
+    gap:11px;
+    border-radius:15px;
+    font-size:15px;
+    line-height:1.25;
+    font-weight:590;
+  }
+
+  .primary-nav .nav-item .nav-icon, .primary-nav .nav-item .nav-icon svg{
+    width:18px;
+    height:18px;
+  }
+
+  .quick-access{
+    gap:2px;
+  }
+
+  .section-label{
+    padding:4px 13px 8px;
+    font-size:10px;
+    line-height:1.2;
+    letter-spacing:.18em;
+  }
+
+  .quick-access button{
+    padding:9px 13px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.35;
+    font-weight:550;
+  }
+
+  .main{
+    padding:0;
+  }
+
+  /* Profile belongs to the same centered working column, not the browser edge. */
+  
+
+  
+
+  
+
+  .page{
+    width:min(1120px,100%);
+    max-width:1120px;
+    margin:0 auto;
+    padding:10px 40px 96px;
+  }
+}
+
+/* ----- Library canonical scale/rhythm ----- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Parent dates only. Child creation time never affects parent grouping/order. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Filter sheet text is scaled here too so it cannot inherit tiny legacy values. */
+
+
+
+
+
+
+
+

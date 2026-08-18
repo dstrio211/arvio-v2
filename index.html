@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#050608" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Arvio" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preload" as="image" href="/arvio-logo.png" fetchpriority="high" />
+  <title>Arvio</title>
+</head>
+<body>
+  <div id="app">
+    <section id="loading-screen" class="screen active">
+      <div class="loading-brand"><img src="/arvio-logo.png" loading="eager" decoding="sync" fetchpriority="high" alt="Arvio" class="brand-logo loading-brand-logo"></div>
+      <div class="loading-line"><span></span></div>
+      <p>Preparing your workspace...</p>
+    </section>
+
+    <section id="auth-screen" class="screen">
+      <div class="auth-card" data-auth-stage="welcome">
+        <div class="auth-brand"><img src="/arvio-logo.png" loading="eager" decoding="sync" fetchpriority="high" alt="Arvio" class="brand-logo auth-brand-logo"></div>
+
+        <div class="auth-stage active" data-auth-stage="welcome">
+          <p class="eyebrow">YOUR NOTES. YOUR COURSES. TOGETHER.</p>
+          <div class="welcome-lockup">
+          <h1>Welcome to</h1>
+          <img src="/arvio-logo.png" loading="eager" decoding="sync" fetchpriority="high" alt="Arvio" class="brand-logo welcome-hero-logo">
+        </div>
+          <p class="muted">A calm workspace for everything you write, study, and share.</p>
+
+          <div class="auth-actions">
+            <button class="auth-entry-btn auth-entry-primary" id="auth-login-start">Log in</button>
+            <button class="auth-entry-btn auth-entry-secondary" id="auth-signup-start">Create account</button>
+          </div>
+
+          <p class="auth-demo-note">Prototype mode — authentication will be connected to Supabase later.</p>
+        </div>
+
+        <div class="auth-stage" data-auth-stage="login">
+          <button class="auth-back" type="button" data-auth-back="welcome">‹ Back</button>
+          <p class="eyebrow">WELCOME BACK</p>
+          <h1>Log in to Arvio.</h1>
+          <p class="muted">Your workspace is right where you left it.</p>
+
+          <form id="login-form" class="auth-form">
+            <label class="auth-field">
+              <span>Email</span>
+              <input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" value="david@example.com" required>
+            </label>
+            <label class="auth-field">
+              <span>Password</span>
+              <input id="login-password" type="password" autocomplete="current-password" placeholder="Your password" value="arvio123" required>
+            </label>
+
+            <button class="auth-submit auth-submit-primary" id="login-submit" type="submit">
+              <span class="auth-submit-label">Log in</span>
+            </button>
+          </form>
+        </div>
+
+        <div class="auth-stage" data-auth-stage="signup">
+          <button class="auth-back" type="button" data-auth-back="welcome">‹ Back</button>
+          <p class="eyebrow">CREATE YOUR ACCOUNT</p>
+          <h1>Start your Arvio.</h1>
+          <p class="muted">Create your account first. We’ll ask for your display name after your email is confirmed.</p>
+
+          <form id="signup-form" class="auth-form">
+            <label class="auth-field">
+              <span>Email</span>
+              <input id="signup-email" type="email" autocomplete="email" placeholder="you@example.com" value="david@example.com" required>
+            </label>
+            <label class="auth-field">
+              <span>Password</span>
+              <input id="signup-password" type="password" autocomplete="new-password" placeholder="Create a password" value="arvio123" required>
+            </label>
+
+            <button class="auth-submit auth-submit-primary" id="signup-submit" type="submit">
+              <span class="auth-submit-label">Create account</span>
+            </button>
+          </form>
+        </div>
+
+        <div class="auth-stage auth-center-stage" data-auth-stage="confirm">
+          <div class="auth-status-orb">✉</div>
+          <p class="eyebrow">CHECK YOUR EMAIL</p>
+          <h1>Confirm your email.</h1>
+          <p class="muted auth-confirm-copy">We sent a confirmation link to <strong id="confirm-email-copy">david@example.com</strong>.</p>
+          <p class="auth-small-note">In the real Supabase flow, Arvio waits until the email is confirmed before continuing.</p>
+
+          <button class="auth-submit auth-submit-primary" id="simulate-confirm" type="button">
+            <span class="auth-submit-label">I’ve confirmed my email</span>
+          </button>
+          <button class="auth-text-action" type="button" data-auth-back="signup">Use a different email</button>
+        </div>
+
+        <div class="auth-stage" data-auth-stage="nickname">
+          <p class="eyebrow">ONE LAST THING</p>
+          <h1>What should we call you?</h1>
+          <p class="muted">This display name will identify you in shared notes and collaboration.</p>
+
+          <form id="nickname-form" class="auth-form">
+            <label class="auth-field">
+              <span>Display name</span>
+              <input id="nickname-input" type="text" autocomplete="nickname" placeholder="David" value="David" maxlength="28" required>
+            </label>
+            <div class="auth-fixed-note">
+              <span class="auth-lock-dot"></span>
+              Your display name is fixed after account setup.
+            </div>
+
+            <button class="auth-submit auth-submit-primary" id="nickname-submit" type="submit">
+              <span class="auth-submit-label">Enter Arvio</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="workspace" class="screen">
+      <div class="mobile-status-scrim" aria-hidden="true"></div>
+      <aside class="sidebar">
+        <div class="brand brand-side"><img src="/arvio-logo.png" loading="eager" decoding="sync" fetchpriority="high" alt="Arvio" class="brand-logo sidebar-brand-logo"></div>
+        <nav class="primary-nav" aria-label="Primary">
+          <button class="nav-item active" data-page="home"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <path d="M3.5 10.7 12 3.8l8.5 6.9"/>
+    <path d="M5.8 9.6v10h12.4v-10"/>
+    <path d="M9.5 19.6v-5.4h5v5.4"/>
+  </g>
+  <g class="icon-fill">
+    <path d="M12 3.3 2.9 10.7l1.5 1.8 1.3-1.1v8.2c0 .7.5 1.2 1.2 1.2h10.2c.7 0 1.2-.5 1.2-1.2v-8.2l1.3 1.1 1.5-1.8L12 3.3Zm2.4 15.4H9.6v-5.2h4.8v5.2Z"/>
+  </g>
+</svg></span>Home</button>
+          <button class="nav-item" data-page="library"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <rect x="4" y="4" width="16" height="16" rx="3"/>
+    <path d="M8 8h8M8 12h8M8 16h5"/>
+  </g>
+  <g class="icon-fill">
+    <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3.4"/>
+    <path class="icon-cut" d="M7.7 8h8.6M7.7 12h8.6M7.7 16h5.5"/>
+  </g>
+</svg></span>Library</button>
+          <button class="nav-item" data-page="profile"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <circle cx="12" cy="7.8" r="3.25"/>
+    <path d="M5.8 19.5c.55-3.15 2.7-4.9 6.2-4.9s5.65 1.75 6.2 4.9"/>
+  </g>
+  <g class="icon-fill">
+    <circle cx="12" cy="7.8" r="3.35"/>
+    <path d="M5.55 19.55c.58-3.4 2.84-5.25 6.45-5.25s5.87 1.85 6.45 5.25c-1.65.94-3.8 1.45-6.45 1.45s-4.8-.51-6.45-1.45Z"/>
+  </g>
+</svg></span>Profile</button>
+        </nav>
+        <div class="quick-access">
+          <div class="section-label">QUICK ACCESS</div>
+          <button>Information Systems</button>
+          <button>Programming</button>
+          <button>Database Systems</button>
+          <button>Toyota</button>
+          <button>Personal</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="mobile-brand"><img src="/arvio-logo.png" loading="eager" decoding="sync" fetchpriority="high" alt="Arvio" class="brand-logo mobile-brand-logo"></div>
+          <div class="topbar-spacer"></div>
+        </header>
+
+        <div id="page-home" class="page active">
+          <p class="eyebrow">HOME</p>
+          <h1>Good afternoon, David.</h1>
+          <p class="lead">Pick up where you left off.</p>
+
+          <button class="new-note" id="new-note">
+            <span>＋</span>
+            <div><strong>New note</strong><small>Start writing something new</small></div>
+          </button>
+
+          <section class="content-section">
+            <div class="section-heading"><h2>Continue where you left off</h2></div>
+            <button class="note-card home-continue-card" id="home-continue-note" type="button">
+              <div>
+                <span class="note-path">Loading your workspace…</span>
+                <h3>Finding your last note</h3>
+                <p>Arvio will continue from your most recent workspace activity.</p>
+              </div>
+              <span class="saved">Loading</span>
+            </button>
+          </section>
+
+          <section class="content-section">
+            <div class="section-heading"><h2>Recently edited</h2></div>
+            <div class="recent-list" id="home-recent-list">
+              <div class="home-recent-empty">Your recent edits will appear here.</div>
+            </div>
+          </section>
+        </div>
+
+        <div id="page-library" class="page">
+          <div class="library-head">
+            <div><p class="eyebrow">LIBRARY</p><h1>Everything you've created.</h1></div>
+            <button class="icon-btn" id="library-menu" aria-label="Library options">•••</button>
+          </div>
+          <div class="library-tools">
+            <button class="filter-btn" id="library-filter" type="button" aria-label="Sort Library" aria-haspopup="dialog" aria-expanded="false">
+              <span class="filter-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 7h14"></path>
+                  <path d="M8 12h8"></path>
+                  <path d="M10 17h4"></path>
+                </svg>
+              </span>
+              <span class="filter-label">Latest</span>
+            </button>
+
+            <div class="search" role="search">
+              <span class="search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="10.5" cy="10.5" r="5.5"></circle>
+                  <path d="m15 15 4 4"></path>
+                </svg>
+              </span>
+              <input id="library-search" placeholder="Search anything in your notes..." autocomplete="off" spellcheck="false" />
+              <button class="search-clear" id="library-search-clear" type="button" aria-label="Clear search" hidden>×</button>
+            </div>
+          </div>
+          <div class="library-search-summary" id="library-search-summary" aria-live="polite"></div>
+          <div id="library-results"></div>
+        </div>
+
+        <div id="page-profile" class="page">
+          <p class="eyebrow">PROFILE</p>
+          <h1>Your Arvio.</h1>
+
+          <div class="profile-panel">
+            <div class="profile-identity">
+              <button class="avatar" id="profile-avatar" aria-label="Change profile picture" title="Change profile picture">
+                <span class="avatar-initial">D</span>
+                <span class="avatar-photo-hint">Change photo</span>
+              </button>
+              <div class="profile-identity-copy">
+                <strong id="profile-display-heading">David</strong>
+                <span id="profile-email-heading">david@example.com</span>
+              </div>
+            </div>
+
+            <div class="profile-row">
+              <span>Display name</span>
+              <strong id="profile-display-name">David</strong>
+              <small>Fixed</small>
+            </div>
+            <div class="profile-row">
+              <span>Email</span>
+              <strong id="profile-email">david@example.com</strong>
+              <small>Fixed</small>
+            </div>
+
+            <button class="logout" id="logout-button">
+              <span>Log out</span>
+            </button>
+          </div>
+
+          <input id="profile-photo-input" type="file" accept="image/*" hidden>
+        </div>
+
+
+        <div id="page-create" class="page create-note-page">
+          <button class="create-back" id="create-note-back" type="button" aria-label="Back to Home">
+            <span aria-hidden="true">‹</span>
+            <span>Back</span>
+          </button>
+
+          <div class="create-note-head">
+            <p class="eyebrow">NEW NOTE</p>
+            <h1>Where should this note live?</h1>
+            <p class="lead">Start something new, or place it inside a topic you already use.</p>
+          </div>
+
+          <div class="create-note-choices">
+            <button class="create-choice create-choice-primary" id="create-new-topic" type="button">
+              <span class="create-choice-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+              </span>
+              <span class="create-choice-copy">
+                <strong>Start a new topic</strong>
+                <small>Create a fresh top-level place for a subject, course, project, or idea.</small>
+              </span>
+              <span class="create-choice-arrow" aria-hidden="true">›</span>
+            </button>
+
+            <button class="create-choice" id="create-existing-topic" type="button" aria-expanded="false">
+              <span class="create-choice-icon branch-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="7" cy="6.5" r="2"></circle>
+                  <circle cx="17" cy="17.5" r="2"></circle>
+                  <path d="M7 8.5v4.2c0 2.7 1.6 4.8 4.7 4.8H15"></path>
+                  <path d="M12 7h5v5"></path>
+                </svg>
+              </span>
+              <span class="create-choice-copy">
+                <strong>Add to an existing topic</strong>
+                <small>Nest this note under something already in your Library.</small>
+              </span>
+              <span class="create-choice-arrow" aria-hidden="true">›</span>
+            </button>
+          </div>
+
+          <section class="create-topic-picker" id="create-topic-picker" hidden>
+            <div class="create-topic-picker-head">
+              <div>
+                <p class="eyebrow">CHOOSE A TOPIC</p>
+                <h2>Continue somewhere familiar.</h2>
+              </div>
+              <button class="icon-btn create-topic-close" id="create-topic-close" type="button" aria-label="Close topic picker">×</button>
+            </div>
+            <div class="create-topic-list" id="create-topic-list"></div>
+          </section>
+        </div>
+
+        <div id="page-note" class="page">
+          <div class="note-toolbar">
+            <div class="note-toolbar-left">
+              <nav class="breadcrumb breadcrumb-btn note-breadcrumb" aria-label="Note path">
+                <span class="crumb">Toyota</span>
+                <span class="sep">›</span>
+                <span class="crumb">Avanza</span>
+                <span class="sep">›</span>
+                <span class="crumb current" aria-current="page">Durability</span>
+              </nav>
+
+              <div class="note-actions note-history-actions" aria-label="Edit history">
+                <button class="icon-btn" id="undo-btn" aria-label="Undo">
+                  <svg class="note-action-svg" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 7 5 11l4 4"></path>
+                    <path d="M6 11h6.5a5.5 5.5 0 0 1 5.5 5.5V17"></path>
+                  </svg>
+                </button>
+                <button class="icon-btn" id="redo-btn" aria-label="Redo">
+                  <svg class="note-action-svg" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m15 7 4 4-4 4"></path>
+                    <path d="M18 11h-6.5A5.5 5.5 0 0 0 6 16.5V17"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button class="share-btn note-share-top" aria-label="Share note">
+              <span class="share-person-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="9" cy="8" r="3.1"></circle>
+                  <path d="M3.8 18.3c.7-3.2 2.5-4.8 5.2-4.8 1.8 0 3.2.7 4.2 2"></path>
+                  <path d="M17.5 8.5v6"></path>
+                  <path d="M14.5 11.5h6"></path>
+                </svg>
+              </span>
+              <span class="share-label">Share</span>
+            </button>
+          </div>
+
+          <article class="editor">
+            <input class="note-title" value="Durability" aria-label="Note title" />
+            <div class="save-status">✓ Saved locally</div>
+            <div class="editor-body" id="editor-body" contenteditable="true" spellcheck="true">
+              <p>The Toyota Avanza has been developed with durability in mind.</p>
+              <p>Since 2010, durability has been continuously refined through changes to the platform, materials, and powertrain.</p>
+              <p>Try typing <strong>/</strong> to open Arvio commands.</p>
+            </div>
+
+
+          </article>
+
+          <div class="command-menu" id="command-menu" hidden>
+            <div class="command-title">ADD TO NOTE</div>
+            <button data-command="link"><span>🔗</span><span><strong>Link</strong><small>Connect another Arvio note</small></span></button>
+            <button data-command="image"><span>🖼</span><span><strong>Image</strong><small>Add a photo to your note</small></span></button>
+            <button data-command="highlight"><span>🖍</span><span><strong>Highlight</strong><small>Highlight selected text</small></span></button>
+            <button data-command="heading"><span>H1</span><span><strong>Heading</strong><small>Turn this line into a heading</small></span></button>
+            <button data-command="bullet"><span>•</span><span><strong>Bullet list</strong><small>Create a simple list</small></span></button>
+          </div>
+
+          <div class="format-menu" id="format-menu" hidden>
+            <button data-format="bold" aria-label="Bold"><b>B</b></button>
+            <button data-format="italic" aria-label="Italic"><i>I</i></button>
+            <button data-format="underline" aria-label="Underline"><u>U</u></button>
+            <button data-format="highlight" aria-label="Highlight">🖍</button>
+            <button data-format="link" aria-label="Link">🔗</button>
+            <button id="format-more" aria-label="More formatting">•••</button>
+          </div>
+        </div>
+      </main>
+
+      <nav class="mobile-nav" aria-label="Mobile navigation">
+        <span class="mobile-nav-indicator" aria-hidden="true"></span>
+        <button class="nav-item active" data-page="home"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <path d="M3.5 10.7 12 3.8l8.5 6.9"/>
+    <path d="M5.8 9.6v10h12.4v-10"/>
+    <path d="M9.5 19.6v-5.4h5v5.4"/>
+  </g>
+  <g class="icon-fill">
+    <path d="M12 3.3 2.9 10.7l1.5 1.8 1.3-1.1v8.2c0 .7.5 1.2 1.2 1.2h10.2c.7 0 1.2-.5 1.2-1.2v-8.2l1.3 1.1 1.5-1.8L12 3.3Zm2.4 15.4H9.6v-5.2h4.8v5.2Z"/>
+  </g>
+</svg></span><small>Home</small></button>
+        <button class="nav-item" data-page="library"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <rect x="4" y="4" width="16" height="16" rx="3"/>
+    <path d="M8 8h8M8 12h8M8 16h5"/>
+  </g>
+  <g class="icon-fill">
+    <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3.4"/>
+    <path class="icon-cut" d="M7.7 8h8.6M7.7 12h8.6M7.7 16h5.5"/>
+  </g>
+</svg></span><small>Library</small></button>
+        <button class="nav-item" data-page="profile"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">
+  <g class="icon-outline">
+    <circle cx="12" cy="7.8" r="3.25"/>
+    <path d="M5.8 19.5c.55-3.15 2.7-4.9 6.2-4.9s5.65 1.75 6.2 4.9"/>
+  </g>
+  <g class="icon-fill">
+    <circle cx="12" cy="7.8" r="3.35"/>
+    <path d="M5.55 19.55c.58-3.4 2.84-5.25 6.45-5.25s5.87 1.85 6.45 5.25c-1.65.94-3.8 1.45-6.45 1.45s-4.8-.51-6.45-1.45Z"/>
+  </g>
+</svg></span><small>Profile</small></button>
+      </nav>
+    </section>
+  </div>
+
+  <div id="share-overlay" class="share-overlay" hidden>
+    <div class="share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div class="share-grabber"></div>
+
+      <div class="share-head">
+        <div>
+          <p class="share-kicker">SHARE NOTE</p>
+          <h2 id="share-title">Overview</h2>
+          <p class="share-path">Toyota › Avanza › Overview</p>
+        </div>
+        <button id="share-close" class="share-close" aria-label="Close share menu">×</button>
+      </div>
+
+      <div class="share-section">
+        <div class="share-row">
+          <div>
+            <strong>Anyone with the link</strong>
+            <small>People can open this note without an Arvio account.</small>
+          </div>
+          <button id="public-toggle" class="toggle-switch" aria-pressed="true">
+            <span></span>
+          </button>
+        </div>
+
+        <div class="permission-wrap">
+          <span class="permission-label">Permission</span>
+          <button id="permission-button" class="permission-button">
+            <span id="permission-value">Viewer</span>
+            <span class="permission-chevron">⌄</span>
+          </button>
+          <div id="permission-menu" class="permission-menu" hidden>
+            <button data-permission="Viewer" class="permission-choice active">
+              <span>
+                <strong>Viewer</strong>
+                <small>Can read, cannot edit.</small>
+              </span>
+              <span>✓</span>
+            </button>
+            <button data-permission="Editor" class="permission-choice">
+              <span>
+                <strong>Editor</strong>
+                <small>Can edit after logging in.</small>
+              </span>
+              <span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-section people-section">
+        <div class="share-section-title">People with access</div>
+        <div class="person-row">
+          <div class="person-avatar initial-blue">D</div>
+          <div class="person-copy">
+            <strong>David</strong>
+            <small>Owner</small>
+          </div>
+          <span class="owner-label">Owner</span>
+        </div>
+      </div>
+
+      <div class="share-actions">
+        <button id="preview-shared" class="share-secondary">Preview shared view</button>
+        <button id="copy-share-link" class="share-primary">
+          <span class="copy-label">Copy link</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="shared-preview" class="shared-preview" hidden>
+    <div class="shared-preview-bar">
+      <div>
+        <strong>Shared note</strong>
+        <span id="shared-preview-copy">You’re viewing this note as a guest.</span>
+      </div>
+      <button id="shared-login-cta">Log in to edit</button>
+      <button id="shared-preview-close" aria-label="Close shared preview">×</button>
+    </div>
+  </div>
+
+
+  <div id="logout-overlay" class="logout-overlay" hidden>
+    <div class="logout-sheet" role="dialog" aria-modal="true" aria-labelledby="logout-title">
+      <div class="logout-grabber"></div>
+
+      <div class="logout-icon">↗</div>
+      <h2 id="logout-title">Log out of Arvio?</h2>
+      <p>You’ll need to log in again to return to your workspace.</p>
+
+      <div class="logout-actions">
+        <button id="logout-cancel" class="logout-cancel">Cancel</button>
+        <button id="logout-confirm" class="logout-confirm">
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
