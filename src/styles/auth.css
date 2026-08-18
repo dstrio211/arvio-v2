@@ -632,3 +632,37 @@
 /* v2.8.3 — async auth actions cannot overlap */
 .auth-text-action:disabled{opacity:.42;pointer-events:none}
 .auth-submit:disabled{cursor:default}
+
+/* ==========================================================
+   v3.3.0 — Supabase auth status feedback
+   Compact inline messages preserve the no-scroll mobile auth layout.
+   ========================================================== */
+.auth-inline-message{
+  min-height:17px;
+  margin:-3px 0 -2px;
+  color:#9aa7b2;
+  font-size:12px;
+  line-height:1.42;
+  opacity:0;
+  transform:translateY(-2px);
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(.16,1,.3,1),
+    color 180ms ease;
+}
+.auth-inline-message:not(:empty){
+  opacity:1;
+  transform:translateY(0);
+}
+.auth-inline-message[data-tone="error"]{color:#ff9298}
+.auth-inline-message[data-tone="info"]{color:#a9dfff}
+.auth-inline-message[data-tone="success"]{color:#9be2be}
+.auth-inline-message-center{
+  width:100%;
+  margin:-8px auto 9px;
+  text-align:center;
+}
+@media(max-width:760px){
+  .auth-inline-message{font-size:11.5px;line-height:1.35}
+  .auth-inline-message-center{margin:-7px auto 7px}
+}

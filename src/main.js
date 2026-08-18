@@ -12,6 +12,7 @@ import "./styles/dialogs.css";
 import "./styles/ui-system.css";
 import "./styles/page-layout.css";
 import "./styles/motion.css";
+import { supabase, isSupabaseConfigured } from "./lib/supabaseClient.js";
 
 const screens = {
   loading: document.querySelector("#loading-screen"),
@@ -43,19 +44,79 @@ function showScreen(name){
   Object.values(screens).forEach(s=>s.classList.remove("active"));
   screens[name].classList.add("active");
 }
-const ARVIO_SESSION_KEY="arvioPrototypeSession_v207";
 const isStandalone =
   window.matchMedia?.("(display-mode: standalone)")?.matches ||
   window.navigator.standalone === true;
 
-function hasPrototypeSession(){
-  try{return localStorage.getItem(ARVIO_SESSION_KEY)==="true"}catch{return false}
+let pendingSignupCredentials={email:"",password:""};
+let authBootstrapped=false;
+
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+function setAuthMessage(stage,message="",tone="error"){
+  const el=document.querySelector(`#${stage}-message`);
+  if(!el) return;
+  el.textContent=message;
+  el.dataset.tone=tone;
 }
-function setPrototypeSession(value){
-  try{
-    if(value) localStorage.setItem(ARVIO_SESSION_KEY,"true");
-    else localStorage.removeItem(ARVIO_SESSION_KEY);
-  }catch{}
+
+function clearAuthMessages(){
+  document.querySelectorAll(".auth-inline-message").forEach(el=>{
+    el.textContent="";
+    el.dataset.tone="";
+  });
+}
+
+function friendlyAuthError(error,fallback="Something went wrong. Please try again."){
+  const raw=(error?.message || "").toLowerCase();
+  const code=(error?.code || "").toLowerCase();
+  if(code.includes("email_not_confirmed") || raw.includes("email not confirmed")) return "Your email is not confirmed yet. Open the confirmation link, then try again.";
+  if(code.includes("invalid_credentials") || raw.includes("invalid login credentials")) return "That email or password doesn’t match.";
+  if(raw.includes("password") && raw.includes("least")) return "Use a stronger password, then try again.";
+  if(raw.includes("rate limit")) return "Too many attempts. Wait a moment, then try again.";
+  if(raw.includes("network") || raw.includes("fetch")) return "Arvio couldn’t reach the server. Check your connection and try again.";
+  return error?.message || fallback;
+}
+
+async function getArvioProfile(userId){
+  if(!supabase || !userId) return null;
+  const {data,error}=await supabase
+    .from("profiles")
+    .select("id,email,display_name,avatar_url")
+    .eq("id",userId)
+    .maybeSingle();
+  if(error){
+    console.warn("Arvio profile lookup failed",error);
+    return null;
+  }
+  return data || null;
+}
+
+function applyCloudIdentity(user,profile){
+  const email=profile?.email || user?.email || "";
+  const displayName=(profile?.display_name || user?.user_metadata?.display_name || "").trim();
+  if(email) applyPrototypeEmail(email);
+  if(displayName) applyPrototypeDisplayName(displayName);
+}
+
+function setAuthStageImmediately(name){
+  authStages.forEach(stage=>{
+    stage.classList.remove(
+      "active",
+      "auth-stage-exit-left",
+      "auth-stage-exit-right",
+      "auth-stage-enter-left",
+      "auth-stage-enter-right"
+    );
+    stage.style.position="";
+    stage.style.left="";
+    stage.style.right="";
+    stage.style.top="";
+  });
+  const target=document.querySelector(`[data-auth-stage="${name}"]`);
+  if(target) target.classList.add("active");
+  authCard.dataset.authStage=name;
+  authTransitioning=false;
 }
 
 function splashToAuth(){
@@ -121,11 +182,36 @@ function splashToWorkspace(){
   },1120);
 }
 
-setTimeout(()=>{
-  if(hasPrototypeSession()) splashToWorkspace();
-  else splashToAuth();
-},1180);
-setTimeout(()=>setAvatarAccent("David"),0);
+async function bootstrapSupabaseAuth(){
+  setAvatarAccent("David");
+
+  const authLookup=(async()=>{
+    if(!isSupabaseConfigured || !supabase) return {user:null,profile:null};
+    const {data,error}=await supabase.auth.getUser();
+    if(error || !data?.user) return {user:null,profile:null};
+    const profile=await getArvioProfile(data.user.id);
+    return {user:data.user,profile};
+  })();
+
+  const [,state]=await Promise.all([sleep(1180),authLookup]);
+  authBootstrapped=true;
+
+  if(state.user){
+    applyCloudIdentity(state.user,state.profile);
+    if((state.profile?.display_name || state.user?.user_metadata?.display_name || "").trim()){
+      splashToWorkspace();
+    }else{
+      setAuthStageImmediately("nickname");
+      splashToAuth();
+    }
+    return;
+  }
+
+  setAuthStageImmediately("welcome");
+  splashToAuth();
+}
+
+bootstrapSupabaseAuth();
 
 // Register and actively refresh the app shell over HTTP(S).
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
@@ -165,6 +251,7 @@ function rippleAuthButton(btn){
 
 function switchAuthStage(name,{back=false}={}){
   if(authTransitioning) return;
+  clearAuthMessages();
   const current=currentAuthStage();
   const next=document.querySelector(`[data-auth-stage="${name}"]`);
   if(!next || current===next) return;
@@ -230,7 +317,6 @@ function launchWorkspaceFromAuth(btn,{newUser=false}={}){
       label.textContent=original;
       authCard.classList.remove("auth-success-flash");
 
-      setPrototypeSession(true);
       screens.workspace.classList.add("active","workspace-enter");
       activatePage("home");
 
@@ -271,46 +357,130 @@ document.querySelectorAll("[data-auth-back]").forEach(btn=>{
   btn.addEventListener("click",()=>switchAuthStage(btn.dataset.authBack,{back:true}));
 });
 
-document.querySelector("#login-form").addEventListener("submit",e=>{
+document.querySelector("#login-form").addEventListener("submit",async e=>{
   e.preventDefault();
-  applyPrototypeEmail(document.querySelector("#login-email").value);
-  launchWorkspaceFromAuth(document.querySelector("#login-submit"));
+  const btn=document.querySelector("#login-submit");
+  if(btn.dataset.loggingIn==="true") return;
+  clearAuthMessages();
+
+  if(!isSupabaseConfigured || !supabase){
+    setAuthMessage("login","Supabase is not configured for this deployment.");
+    return;
+  }
+
+  const email=document.querySelector("#login-email").value.trim();
+  const password=document.querySelector("#login-password").value;
+  const label=btn.querySelector(".auth-submit-label");
+  const original=label.textContent;
+
+  btn.dataset.loggingIn="true";
+  btn.disabled=true;
+  rippleAuthButton(btn);
+  btn.classList.add("is-processing");
+  label.textContent="Logging in";
+
+  const {data,error}=await supabase.auth.signInWithPassword({email,password});
+  if(error || !data?.user){
+    btn.classList.remove("is-processing");
+    btn.disabled=false;
+    btn.dataset.loggingIn="false";
+    label.textContent=original;
+    setAuthMessage("login",friendlyAuthError(error));
+    return;
+  }
+
+  const profile=await getArvioProfile(data.user.id);
+  applyCloudIdentity(data.user,profile);
+  btn.classList.remove("is-processing");
+  btn.disabled=false;
+  btn.dataset.loggingIn="false";
+  label.textContent=original;
+
+  if(!(profile?.display_name || data.user?.user_metadata?.display_name || "").trim()){
+    switchAuthStage("nickname");
+    return;
+  }
+
+  launchWorkspaceFromAuth(btn);
 });
 
-document.querySelector("#signup-form").addEventListener("submit",e=>{
+document.querySelector("#signup-form").addEventListener("submit",async e=>{
   e.preventDefault();
   const btn=document.querySelector("#signup-submit");
   if(btn.dataset.creating==="true") return;
+  clearAuthMessages();
+
+  if(!isSupabaseConfigured || !supabase){
+    setAuthMessage("signup","Supabase is not configured for this deployment.");
+    return;
+  }
+
+  const email=document.querySelector("#signup-email").value.trim();
+  const password=document.querySelector("#signup-password").value;
+  const label=btn.querySelector(".auth-submit-label");
+
   btn.dataset.creating="true";
   btn.disabled=true;
   rippleAuthButton(btn);
   btn.classList.add("is-processing");
-
-  const label=btn.querySelector(".auth-submit-label");
   label.classList.add("copy-transition");
   setTimeout(()=>{
     label.textContent="Creating account";
     label.classList.remove("copy-transition");
   },120);
 
-  setTimeout(()=>{
-    const signupEmail=document.querySelector("#signup-email").value.trim() || "your email";
-    document.querySelector("#confirm-email-copy").textContent=signupEmail;
-    applyPrototypeEmail(signupEmail);
-    btn.classList.remove("is-processing");
-    btn.disabled=false;
-    btn.dataset.creating="false";
-    label.textContent="Create account";
-    switchAuthStage("confirm");
-  },650);
+  const {data,error}=await supabase.auth.signUp({
+    email,
+    password,
+    options:{
+      emailRedirectTo:`${window.location.origin}/`
+    }
+  });
+
+  btn.classList.remove("is-processing");
+  btn.disabled=false;
+  btn.dataset.creating="false";
+  label.textContent="Create account";
+
+  if(error){
+    setAuthMessage("signup",friendlyAuthError(error));
+    return;
+  }
+
+  pendingSignupCredentials={email,password};
+  document.querySelector("#confirm-email-copy").textContent=email;
+  applyPrototypeEmail(email);
+
+  if(data?.session && data?.user){
+    const profile=await getArvioProfile(data.user.id);
+    applyCloudIdentity(data.user,profile);
+    switchAuthStage("nickname");
+    return;
+  }
+
+  switchAuthStage("confirm");
 });
 
 const confirmEmailButton=document.querySelector("#simulate-confirm");
 const confirmDifferentEmail=document.querySelector('[data-auth-stage="confirm"] [data-auth-back="signup"]');
 
-confirmEmailButton.addEventListener("click",e=>{
+confirmEmailButton.addEventListener("click",async e=>{
   const btn=e.currentTarget;
   if(btn.dataset.confirming==="true") return;
+  clearAuthMessages();
+
+  if(!isSupabaseConfigured || !supabase){
+    setAuthMessage("confirm","Supabase is not configured for this deployment.");
+    return;
+  }
+
+  const email=pendingSignupCredentials.email || document.querySelector("#signup-email").value.trim();
+  const password=pendingSignupCredentials.password || document.querySelector("#signup-password").value;
+  if(!email || !password){
+    setAuthMessage("confirm","Return to Create account and enter your email and password again.");
+    return;
+  }
+
   btn.dataset.confirming="true";
   btn.disabled=true;
   if(confirmDifferentEmail) confirmDifferentEmail.disabled=true;
@@ -320,12 +490,26 @@ confirmEmailButton.addEventListener("click",e=>{
   btn.classList.add("is-processing");
   const label=btn.querySelector(".auth-submit-label");
   label.classList.add("copy-transition");
-
   setTimeout(()=>{
-    label.textContent="Email confirmed!";
-    btn.classList.add("is-confirmed");
+    label.textContent="Checking email";
     label.classList.remove("copy-transition");
-  },135);
+  },120);
+
+  const {data,error}=await supabase.auth.signInWithPassword({email,password});
+  if(error || !data?.user){
+    btn.classList.remove("is-processing","is-confirmed");
+    btn.disabled=false;
+    btn.dataset.confirming="false";
+    if(confirmDifferentEmail) confirmDifferentEmail.disabled=false;
+    label.textContent="I’ve confirmed my email";
+    setAuthMessage("confirm",friendlyAuthError(error));
+    return;
+  }
+
+  const profile=await getArvioProfile(data.user.id);
+  applyCloudIdentity(data.user,profile);
+  label.textContent="Email confirmed!";
+  btn.classList.add("is-confirmed");
 
   setTimeout(()=>{
     btn.classList.remove("is-processing");
@@ -338,7 +522,7 @@ confirmEmailButton.addEventListener("click",e=>{
       if(confirmDifferentEmail) confirmDifferentEmail.disabled=false;
       label.textContent="I’ve confirmed my email";
     },320);
-  },760);
+  },620);
 });
 
 function applyPrototypeDisplayName(name){
@@ -364,11 +548,61 @@ function applyPrototypeDisplayName(name){
   setAvatarAccent(clean);
 }
 
-document.querySelector("#nickname-form").addEventListener("submit",e=>{
+document.querySelector("#nickname-form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const name=document.querySelector("#nickname-input").value;
+  const btn=document.querySelector("#nickname-submit");
+  if(btn.dataset.savingName==="true") return;
+  clearAuthMessages();
+
+  const name=document.querySelector("#nickname-input").value.trim();
+  if(!name){
+    setAuthMessage("nickname","Enter a display name to continue.");
+    return;
+  }
+  if(!isSupabaseConfigured || !supabase){
+    setAuthMessage("nickname","Supabase is not configured for this deployment.");
+    return;
+  }
+
+  btn.dataset.savingName="true";
+  btn.disabled=true;
+  btn.classList.add("is-processing");
+  const label=btn.querySelector(".auth-submit-label");
+  label.textContent="Saving name";
+
+  const {data:userData,error:userError}=await supabase.auth.getUser();
+  if(userError || !userData?.user){
+    btn.dataset.savingName="false";
+    btn.disabled=false;
+    btn.classList.remove("is-processing");
+    label.textContent="Enter Arvio";
+    setAuthMessage("nickname","Your session expired. Log in again to finish setup.");
+    return;
+  }
+
+  const {error:profileError}=await supabase
+    .from("profiles")
+    .update({display_name:name,updated_at:new Date().toISOString()})
+    .eq("id",userData.user.id);
+
+  if(profileError){
+    btn.dataset.savingName="false";
+    btn.disabled=false;
+    btn.classList.remove("is-processing");
+    label.textContent="Enter Arvio";
+    setAuthMessage("nickname",friendlyAuthError(profileError,"Arvio couldn’t save your display name."));
+    return;
+  }
+
+  await supabase.auth.updateUser({data:{display_name:name}}).catch(()=>{});
+  applyPrototypeEmail(userData.user.email || "");
   applyPrototypeDisplayName(name);
-  launchWorkspaceFromAuth(document.querySelector("#nickname-submit"),{newUser:true});
+
+  btn.dataset.savingName="false";
+  btn.disabled=false;
+  btn.classList.remove("is-processing");
+  label.textContent="Enter Arvio";
+  launchWorkspaceFromAuth(btn,{newUser:true});
 });
 
 
@@ -4439,20 +4673,31 @@ logoutConfirm?.addEventListener("click",()=>{
 
   const label=logoutConfirm.querySelector("span");
   label.style.opacity="0";
+  const signOutRequest=(isSupabaseConfigured && supabase)
+    ? supabase.auth.signOut()
+    : Promise.resolve({error:null});
 
   setTimeout(()=>{
     label.textContent="Logging out";
     label.style.opacity="1";
   },130);
 
-  setTimeout(()=>{
+  setTimeout(async()=>{
+    const {error}=await signOutRequest;
+    if(error){
+      label.textContent="Log out";
+      logoutConfirm.classList.remove("is-processing");
+      logoutConfirm.dataset.loggingOut="false";
+      return;
+    }
+
     closeLogoutSheet();
     screens.workspace.classList.add("workspace-exit");
 
     setTimeout(()=>{
-      setPrototypeSession(false);
       screens.workspace.classList.remove("active","workspace-exit");
       resetAuthWelcome();
+      clearAuthMessages();
 
       screens.auth.classList.add("active");
       authCard.classList.add("auth-success-flash");

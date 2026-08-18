@@ -38,7 +38,7 @@
             <button class="auth-entry-btn auth-entry-secondary" id="auth-signup-start">Create account</button>
           </div>
 
-          <p class="auth-demo-note">Prototype mode — authentication will be connected to Supabase later.</p>
+          <p class="auth-demo-note">Secure account sync is connected.</p>
         </div>
 
         <div class="auth-stage" data-auth-stage="login">
@@ -50,13 +50,14 @@
           <form id="login-form" class="auth-form">
             <label class="auth-field">
               <span>Email</span>
-              <input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" value="david@example.com" required>
+              <input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" required>
             </label>
             <label class="auth-field">
               <span>Password</span>
-              <input id="login-password" type="password" autocomplete="current-password" placeholder="Your password" value="arvio123" required>
+              <input id="login-password" type="password" autocomplete="current-password" placeholder="Your password" required>
             </label>
 
+            <p class="auth-inline-message" id="login-message" role="status" aria-live="polite"></p>
             <button class="auth-submit auth-submit-primary" id="login-submit" type="submit">
               <span class="auth-submit-label">Log in</span>
             </button>
@@ -72,13 +73,14 @@
           <form id="signup-form" class="auth-form">
             <label class="auth-field">
               <span>Email</span>
-              <input id="signup-email" type="email" autocomplete="email" placeholder="you@example.com" value="david@example.com" required>
+              <input id="signup-email" type="email" autocomplete="email" placeholder="you@example.com" required>
             </label>
             <label class="auth-field">
               <span>Password</span>
-              <input id="signup-password" type="password" autocomplete="new-password" placeholder="Create a password" value="arvio123" required>
+              <input id="signup-password" type="password" autocomplete="new-password" placeholder="Create a password" required>
             </label>
 
+            <p class="auth-inline-message" id="signup-message" role="status" aria-live="polite"></p>
             <button class="auth-submit auth-submit-primary" id="signup-submit" type="submit">
               <span class="auth-submit-label">Create account</span>
             </button>
@@ -90,8 +92,9 @@
           <p class="eyebrow">CHECK YOUR EMAIL</p>
           <h1>Confirm your email.</h1>
           <p class="muted auth-confirm-copy">We sent a confirmation link to <strong id="confirm-email-copy">david@example.com</strong>.</p>
-          <p class="auth-small-note">In the real Supabase flow, Arvio waits until the email is confirmed before continuing.</p>
+          <p class="auth-small-note">Open the confirmation link, then return here. Arvio will continue once Supabase confirms your email.</p>
 
+          <p class="auth-inline-message auth-inline-message-center" id="confirm-message" role="status" aria-live="polite"></p>
           <button class="auth-submit auth-submit-primary" id="simulate-confirm" type="button">
             <span class="auth-submit-label">I’ve confirmed my email</span>
           </button>
@@ -106,13 +109,14 @@
           <form id="nickname-form" class="auth-form">
             <label class="auth-field">
               <span>Display name</span>
-              <input id="nickname-input" type="text" autocomplete="nickname" placeholder="David" value="David" maxlength="28" required>
+              <input id="nickname-input" type="text" autocomplete="nickname" placeholder="David" maxlength="28" required>
             </label>
             <div class="auth-fixed-note">
               <span class="auth-lock-dot"></span>
               Your display name is fixed after account setup.
             </div>
 
+            <p class="auth-inline-message" id="nickname-message" role="status" aria-live="polite"></p>
             <button class="auth-submit auth-submit-primary" id="nickname-submit" type="submit">
               <span class="auth-submit-label">Enter Arvio</span>
             </button>
