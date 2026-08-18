@@ -51,6 +51,18 @@ const isStandalone =
 let pendingSignupCredentials={email:"",password:""};
 let authBootstrapped=false;
 
+// v3.4.0 — authenticated cloud notes sync state.
+let currentCloudUserId=null;
+let cloudInitializedUserId=null;
+let cloudInitPromise=null;
+let cloudInitUserId=null;
+let cloudSyncReady=false;
+let cloudApplyingRemote=false;
+let cloudSyncTimer=0;
+let cloudSyncChain=Promise.resolve();
+const ARVIO_CLOUD_OWNER_KEY="arvioCloudOwnerId_v340";
+const ARVIO_CLOUD_DELETE_QUEUE_PREFIX="arvioCloudDeleteQueue_v340:";
+
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function setAuthMessage(stage,message="",tone="error"){
@@ -197,8 +209,10 @@ async function bootstrapSupabaseAuth(){
   authBootstrapped=true;
 
   if(state.user){
+    currentCloudUserId=state.user.id;
     applyCloudIdentity(state.user,state.profile);
     if((state.profile?.display_name || state.user?.user_metadata?.display_name || "").trim()){
+      await initializeCloudNotesForUser(state.user.id).catch(()=>{});
       splashToWorkspace();
     }else{
       setAuthStageImmediately("nickname");
@@ -390,6 +404,7 @@ document.querySelector("#login-form").addEventListener("submit",async e=>{
   }
 
   const profile=await getArvioProfile(data.user.id);
+  currentCloudUserId=data.user.id;
   applyCloudIdentity(data.user,profile);
   btn.classList.remove("is-processing");
   btn.disabled=false;
@@ -401,6 +416,7 @@ document.querySelector("#login-form").addEventListener("submit",async e=>{
     return;
   }
 
+  await initializeCloudNotesForUser(data.user.id).catch(()=>{});
   launchWorkspaceFromAuth(btn);
 });
 
@@ -452,6 +468,7 @@ document.querySelector("#signup-form").addEventListener("submit",async e=>{
   applyPrototypeEmail(email);
 
   if(data?.session && data?.user){
+    currentCloudUserId=data.user.id;
     const profile=await getArvioProfile(data.user.id);
     applyCloudIdentity(data.user,profile);
     switchAuthStage("nickname");
@@ -506,6 +523,7 @@ confirmEmailButton.addEventListener("click",async e=>{
     return;
   }
 
+  currentCloudUserId=data.user.id;
   const profile=await getArvioProfile(data.user.id);
   applyCloudIdentity(data.user,profile);
   label.textContent="Email confirmed!";
@@ -595,8 +613,10 @@ document.querySelector("#nickname-form").addEventListener("submit",async e=>{
   }
 
   await supabase.auth.updateUser({data:{display_name:name}}).catch(()=>{});
+  currentCloudUserId=userData.user.id;
   applyPrototypeEmail(userData.user.email || "");
   applyPrototypeDisplayName(name);
+  await initializeCloudNotesForUser(userData.user.id).catch(()=>{});
 
   btn.dataset.savingName="false";
   btn.disabled=false;
@@ -1034,6 +1054,20 @@ const ARVIO_NOTE_STORE="notes";
 const ARVIO_APP_STATE_STORE="appState";
 const ARVIO_LIBRARY_DB_KEY="library-state";
 
+function isArvioUuid(value){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||""));
+}
+
+function createArvioNoteId(){
+  if(globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  // RFC4122 v4 fallback for older embedded browsers.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,char=>{
+    const r=Math.random()*16|0;
+    const v=char==="x"?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
 function openArvioDB(){
   return new Promise((resolve,reject)=>{
     if(!("indexedDB" in window)) return reject(new Error("IndexedDB unavailable"));
@@ -1110,6 +1144,385 @@ async function getAllArvioStoreRecords(storeName){
   }
 }
 
+
+/* ==========================================================
+   v3.4.0 — Supabase cloud notes sync
+   IndexedDB stays the fast/offline cache; Supabase is the account cloud copy.
+   ========================================================== */
+
+function getCloudDeleteQueueKey(userId=currentCloudUserId){
+  return `${ARVIO_CLOUD_DELETE_QUEUE_PREFIX}${userId||"anonymous"}`;
+}
+
+function readCloudDeleteQueue(userId=currentCloudUserId){
+  if(!userId) return [];
+  try{
+    const parsed=JSON.parse(localStorage.getItem(getCloudDeleteQueueKey(userId))||"[]");
+    return Array.isArray(parsed)?parsed.filter(isArvioUuid):[];
+  }catch{return []}
+}
+
+function writeCloudDeleteQueue(ids,userId=currentCloudUserId){
+  if(!userId) return;
+  const clean=[...new Set((ids||[]).filter(isArvioUuid))];
+  try{
+    if(clean.length) localStorage.setItem(getCloudDeleteQueueKey(userId),JSON.stringify(clean));
+    else localStorage.removeItem(getCloudDeleteQueueKey(userId));
+  }catch{}
+}
+
+function queueCloudDeleteIds(ids){
+  if(!currentCloudUserId) return;
+  writeCloudDeleteQueue([...readCloudDeleteQueue(),...(ids||[])]);
+  scheduleCloudLibrarySync({delay:120});
+}
+
+async function flushCloudDeleteQueue(){
+  if(!supabase || !currentCloudUserId || !navigator.onLine) return false;
+  const ids=readCloudDeleteQueue();
+  if(!ids.length) return true;
+  const {error}=await supabase.from("notes").delete().in("id",ids);
+  if(error){
+    console.warn("Arvio cloud delete queue failed",error);
+    return false;
+  }
+  writeCloudDeleteQueue([]);
+  return true;
+}
+
+function collectLibraryNodeIds(node,out=[]){
+  if(!node) return out;
+  if(isArvioUuid(node.id)) out.push(node.id);
+  if(Array.isArray(node.children)) node.children.forEach(child=>collectLibraryNodeIds(child,out));
+  return out;
+}
+
+function stampSubtreeUpdatedAt(node,iso=new Date().toISOString()){
+  if(!node) return;
+  node.updatedAt=iso;
+  if(Array.isArray(node.children)) node.children.forEach(child=>stampSubtreeUpdatedAt(child,iso));
+}
+
+async function migrateLocalNoteIdsToUuid(){
+  const mappings=[];
+  const seen=new Set();
+  const walk=node=>{
+    if(!node || seen.has(node)) return;
+    seen.add(node);
+    if(!isArvioUuid(node.id)){
+      const oldId=node.id || "";
+      const nextId=createArvioNoteId();
+      node.id=nextId;
+      mappings.push({oldId,nextId,node});
+    }
+    if(Array.isArray(node.children)) node.children.forEach(walk);
+  };
+
+  libraryTree.forEach(walk);
+  libraryTrash.forEach(item=>walk(item.node));
+
+  for(const mapping of mappings){
+    if(!mapping.oldId) continue;
+    const oldKey=`noteid:${mapping.oldId}`;
+    const newKey=`noteid:${mapping.nextId}`;
+    try{
+      const record=await readArvioStore(ARVIO_NOTE_STORE,oldKey);
+      if(record){
+        await writeArvioStore(ARVIO_NOTE_STORE,{...record,key:newKey,noteId:mapping.nextId});
+        await deleteArvioStoreRecord(ARVIO_NOTE_STORE,oldKey).catch(()=>{});
+      }
+    }catch{}
+    if(activeLocalNoteKey===oldKey) activeLocalNoteKey=newKey;
+  }
+
+  if(mappings.length) await persistLibraryStateNow().catch(()=>{});
+  return mappings.length;
+}
+
+function cloudPathForRow(row,allById){
+  const names=[];
+  const visited=new Set();
+  let current=row;
+  while(current && !visited.has(current.id)){
+    visited.add(current.id);
+    names.unshift(current.title || "Untitled");
+    current=current.parent_id ? allById.get(current.parent_id) : null;
+  }
+  return names;
+}
+
+function cloudRowToLocalNode(row){
+  return {
+    id:row.id,
+    title:row.title || "Untitled",
+    body:row.content_text || "",
+    html:row.content_html || "",
+    createdAt:row.created_at || new Date().toISOString(),
+    updatedAt:row.updated_at || row.created_at || new Date().toISOString(),
+    lastOpenedAt:row.last_opened_at || null,
+    children:[]
+  };
+}
+
+function sortCloudRows(a,b){
+  const order=(Number(a.sort_order)||0)-(Number(b.sort_order)||0);
+  if(order) return order;
+  return new Date(a.created_at||0)-new Date(b.created_at||0);
+}
+
+async function writeCloudRowsToIndexedDb(rows){
+  for(const row of rows){
+    try{
+      await writeArvioStore(ARVIO_NOTE_STORE,{
+        key:`noteid:${row.id}`,
+        noteId:row.id,
+        title:row.title || "Untitled",
+        html:row.content_html || "",
+        text:row.content_text || "",
+        path:[],
+        pathLabel:"",
+        createdAt:row.created_at || new Date().toISOString(),
+        updatedAt:row.updated_at || row.created_at || new Date().toISOString(),
+        lastOpenedAt:row.last_opened_at || null,
+        revision:0
+      });
+    }catch{}
+  }
+}
+
+async function hydrateCloudRowsIntoLocal(rows){
+  const allById=new Map(rows.map(row=>[row.id,row]));
+  const activeRows=rows.filter(row=>!row.trashed_at).sort(sortCloudRows);
+  const trashRows=rows.filter(row=>Boolean(row.trashed_at)).sort(sortCloudRows);
+
+  const activeNodeById=new Map(activeRows.map(row=>[row.id,cloudRowToLocalNode(row)]));
+  const nextTree=[];
+  activeRows.forEach(row=>{
+    const node=activeNodeById.get(row.id);
+    if(row.parent_id && activeNodeById.has(row.parent_id)) activeNodeById.get(row.parent_id).children.push(node);
+    else nextTree.push(node);
+  });
+
+  const trashNodeById=new Map(trashRows.map(row=>[row.id,cloudRowToLocalNode(row)]));
+  const trashRoots=[];
+  trashRows.forEach(row=>{
+    const node=trashNodeById.get(row.id);
+    if(row.parent_id && trashNodeById.has(row.parent_id)) trashNodeById.get(row.parent_id).children.push(node);
+    else trashRoots.push(row);
+  });
+
+  const nextTrash=trashRoots.map((row,index)=>{
+    const fullPath=cloudPathForRow(row,allById);
+    const parentPath=fullPath.slice(0,-1);
+    return {
+      id:`trash-cloud-${row.id}`,
+      node:trashNodeById.get(row.id),
+      path:fullPath,
+      parentPath,
+      originalIndex:Number.isFinite(Number(row.sort_order))?Number(row.sort_order):index,
+      deletedAt:row.trashed_at || new Date().toISOString()
+    };
+  });
+
+  cloudApplyingRemote=true;
+  try{
+    libraryTree.splice(0,libraryTree.length,...nextTree);
+    libraryTrash=nextTrash;
+    expandedNodes.clear();
+    Object.keys(libraryCreatedAt).forEach(key=>delete libraryCreatedAt[key]);
+    const stamp=(nodes,path=[])=>nodes.forEach(node=>{
+      const current=[...path,node.title];
+      libraryCreatedAt[current.join("›")]=node.createdAt || new Date().toISOString();
+      if(Array.isArray(node.children)) stamp(node.children,current);
+    });
+    stamp(libraryTree);
+    await writeCloudRowsToIndexedDb(rows);
+    await syncLibrarySubtreeRecordsForAllLocalPaths();
+    await persistLibraryStateNow();
+    renderLibrary(librarySearch?.value||"");
+    renderHomeDashboard();
+  }finally{
+    cloudApplyingRemote=false;
+  }
+}
+
+async function syncLibrarySubtreeRecordsForAllLocalPaths(){
+  for(const entry of flattenTree(libraryTree)){
+    const key=`noteid:${entry.node.id}`;
+    try{
+      const existing=await readArvioStore(ARVIO_NOTE_STORE,key);
+      if(existing){
+        await writeArvioStore(ARVIO_NOTE_STORE,{...existing,path:[...entry.path],pathLabel:entry.path.join(" › "),title:entry.node.title});
+      }
+    }catch{}
+  }
+}
+
+async function buildLocalCloudRows(){
+  if(!currentCloudUserId) return [];
+  const records=await getAllArvioStoreRecords(ARVIO_NOTE_STORE).catch(()=>[]);
+  const recordById=new Map(records.filter(item=>item?.noteId).map(item=>[item.noteId,item]));
+  const rows=[];
+
+  const pushNode=(node,parentId,sortOrder,trashedAt,path)=>{
+    if(!node?.id || !isArvioUuid(node.id)) return;
+    const record=recordById.get(node.id);
+    const created=node.createdAt || record?.createdAt || libraryCreatedAt[path.join("›")] || new Date().toISOString();
+    const updatedCandidates=[node.updatedAt,record?.updatedAt,trashedAt].filter(Boolean).map(value=>new Date(value).getTime()).filter(Number.isFinite);
+    const updated=updatedCandidates.length ? new Date(Math.max(...updatedCandidates)).toISOString() : created;
+    rows.push({
+      id:node.id,
+      owner_id:currentCloudUserId,
+      parent_id:parentId || null,
+      title:node.title || record?.title || "Untitled",
+      content_html:record?.html ?? node.html ?? (node.body?`<p>${escapeHtml(node.body)}</p>`:""),
+      content_text:record?.text ?? node.body ?? "",
+      created_at:created,
+      updated_at:updated,
+      last_opened_at:node.lastOpenedAt || record?.lastOpenedAt || null,
+      trashed_at:trashedAt || null,
+      sort_order:Number(sortOrder)||0
+    });
+    if(Array.isArray(node.children)){
+      node.children.forEach((child,index)=>pushNode(child,node.id,index,trashedAt,[...path,child.title]));
+    }
+  };
+
+  libraryTree.forEach((node,index)=>pushNode(node,null,index,null,[node.title]));
+  libraryTrash.forEach((item,trashIndex)=>{
+    const parent=findLibraryNode(item.parentPath||[]);
+    const parentId=parent?.node?.id || null;
+    pushNode(item.node,parentId,item.originalIndex ?? trashIndex,item.deletedAt || new Date().toISOString(),item.path || [item.node.title]);
+  });
+  return rows;
+}
+
+function chooseNewestCloudRow(localRow,remoteRow){
+  if(!localRow) return remoteRow;
+  if(!remoteRow) return localRow;
+  const localTime=new Date(localRow.updated_at||localRow.created_at||0).getTime();
+  const remoteTime=new Date(remoteRow.updated_at||remoteRow.created_at||0).getTime();
+  return localTime>remoteTime+250 ? localRow : remoteRow;
+}
+
+async function fetchCloudNotes(){
+  if(!supabase || !currentCloudUserId) return {rows:[],error:new Error("Cloud unavailable")};
+  const {data,error}=await supabase
+    .from("notes")
+    .select("id,owner_id,parent_id,title,content_html,content_text,created_at,updated_at,last_opened_at,trashed_at,sort_order")
+    .order("sort_order",{ascending:true})
+    .order("created_at",{ascending:true});
+  return {rows:Array.isArray(data)?data:[],error};
+}
+
+async function pushRowsToCloud(rows){
+  if(!supabase || !currentCloudUserId || !rows.length) return true;
+  const {error}=await supabase.from("notes").upsert(rows,{onConflict:"id"});
+  if(error){
+    console.warn("Arvio cloud notes upsert failed",error);
+    return false;
+  }
+  return true;
+}
+
+async function syncWholeLibraryToCloud(){
+  if(!cloudSyncReady || cloudApplyingRemote || !currentCloudUserId || !supabase || !navigator.onLine) return false;
+  await migrateLocalNoteIdsToUuid();
+  const rows=await buildLocalCloudRows();
+  const ok=await pushRowsToCloud(rows);
+  if(ok) await flushCloudDeleteQueue();
+  return ok;
+}
+
+function scheduleCloudLibrarySync({delay=650}={}){
+  if(!cloudSyncReady || cloudApplyingRemote || !currentCloudUserId || !supabase) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer=setTimeout(()=>{
+    const run=()=>syncWholeLibraryToCloud();
+    cloudSyncChain=cloudSyncChain.then(run,run);
+  },delay);
+}
+
+async function waitForLibraryHydration(){
+  const started=Date.now();
+  while(!libraryStateHydrated && Date.now()-started<6000) await sleep(30);
+}
+
+async function initializeCloudNotesForUser(userId){
+  if(!userId || !supabase || !isSupabaseConfigured) return false;
+  if(cloudInitializedUserId===userId && cloudSyncReady) return true;
+  if(cloudInitPromise && cloudInitUserId===userId) return cloudInitPromise;
+
+  currentCloudUserId=userId;
+  cloudSyncReady=false;
+  cloudInitUserId=userId;
+  const run=async()=>{
+    await waitForLibraryHydration();
+
+    let previousOwner="";
+    try{ previousOwner=localStorage.getItem(ARVIO_CLOUD_OWNER_KEY)||""; }catch{}
+    const sameLocalOwner=previousOwner===userId;
+
+    const fetched=await fetchCloudNotes();
+    const error=fetched.error;
+    let remoteRows=fetched.rows;
+    if(error){
+      console.warn("Arvio cloud notes initial fetch failed",error);
+      // Keep IndexedDB usable and retry the remote merge when connectivity returns.
+      cloudInitializedUserId=null;
+      cloudSyncReady=false;
+      return false;
+    }
+
+    // A permanent delete can happen offline. Do not resurrect queued tombstones
+    // from the server while the delete request is waiting to be retried.
+    const queuedDeletes=new Set(readCloudDeleteQueue(userId));
+    if(queuedDeletes.size) remoteRows=remoteRows.filter(row=>!queuedDeletes.has(row.id));
+
+    // Use legacy/local data only for the same signed-in owner, or for the very
+    // first account migration when the cloud is empty. A fresh browser that
+    // already has cloud data must not merge the factory/demo local tree.
+    const canUseCurrentLocal=sameLocalOwner || (!previousOwner && !remoteRows.length);
+    if(canUseCurrentLocal) await migrateLocalNoteIdsToUuid();
+
+    if(!remoteRows.length){
+      if(canUseCurrentLocal){
+        const localRows=await buildLocalCloudRows();
+        if(localRows.length) await pushRowsToCloud(localRows);
+      }else{
+        cloudApplyingRemote=true;
+        try{
+          libraryTree.splice(0,libraryTree.length);
+          libraryTrash=[];
+          Object.keys(libraryCreatedAt).forEach(key=>delete libraryCreatedAt[key]);
+          await persistLibraryStateNow();
+          renderLibrary(librarySearch?.value||"");
+          renderHomeDashboard();
+        }finally{cloudApplyingRemote=false;}
+      }
+    }else if(canUseCurrentLocal){
+      const localRows=await buildLocalCloudRows();
+      const localById=new Map(localRows.map(row=>[row.id,row]));
+      const remoteById=new Map(remoteRows.map(row=>[row.id,row]));
+      const ids=new Set([...localById.keys(),...remoteById.keys()]);
+      const merged=[...ids].map(id=>chooseNewestCloudRow(localById.get(id),remoteById.get(id))).filter(Boolean);
+      await hydrateCloudRowsIntoLocal(merged);
+      await pushRowsToCloud(merged);
+    }else{
+      await hydrateCloudRowsIntoLocal(remoteRows);
+    }
+
+    await flushCloudDeleteQueue();
+    try{ localStorage.setItem(ARVIO_CLOUD_OWNER_KEY,userId); }catch{}
+    cloudInitializedUserId=userId;
+    cloudSyncReady=true;
+    return true;
+  };
+
+  cloudInitPromise=run().finally(()=>{ cloudInitPromise=null; cloudInitUserId=null; });
+  return cloudInitPromise;
+}
+
 const libraryTree = [
   {
     title:"Toyota", icon:"▤", meta:"6 notes",
@@ -1161,7 +1574,7 @@ function createDraftAtPath(parentPath=[]){
   }
 
   const title=uniqueLibraryTitle(container,"Untitled");
-  const id=`note-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const id=createArvioNoteId();
   const now=new Date().toISOString();
   const node={
     id,
@@ -1414,7 +1827,10 @@ async function persistLibraryStateNow(){
 
 function persistLibraryState(){
   clearTimeout(libraryStatePersistTimer);
-  libraryStatePersistTimer=setTimeout(()=>{ persistLibraryStateNow(); },90);
+  libraryStatePersistTimer=setTimeout(async()=>{
+    await persistLibraryStateNow();
+    scheduleCloudLibrarySync();
+  },90);
 }
 
 function restoreLegacyPersistedLibraryState(){
@@ -1531,13 +1947,15 @@ function removeLibraryPath(path,{recordTrash=false}={}){
   pruneExpandedPaths(found.path);
 
   if(recordTrash){
+    const deletedAt=new Date().toISOString();
+    stampSubtreeUpdatedAt(node,deletedAt);
     const trashItem={
       id:`trash-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
       node,
       path:found.path,
       parentPath:found.parentPath,
       originalIndex:found.index,
-      deletedAt:new Date().toISOString()
+      deletedAt
     };
     libraryTrash.unshift(trashItem);
     persistLibraryTrash();
@@ -1565,6 +1983,7 @@ function restoreLibraryTrashItem(id){
   if(!container) return {ok:false,missingParent:true};
 
   const insertAt=Math.min(Math.max(0,item.originalIndex ?? container.length),container.length);
+  stampSubtreeUpdatedAt(item.node,new Date().toISOString());
   container.splice(insertAt,0,item.node);
   libraryTrash.splice(index,1);
   persistLibraryTrash();
@@ -1586,7 +2005,7 @@ function ensureLibraryNodeIds(nodes=libraryTree){
   const walk=list=>{
     list.forEach(node=>{
       if(!node.id){
-        node.id=`note-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
+        node.id=createArvioNoteId();
         changed=true;
       }
       if(Array.isArray(node.children)) walk(node.children);
@@ -1664,7 +2083,7 @@ function stampCreatedAtTree(node,path,iso=new Date().toISOString()){
 function cloneLibraryNodeForDuplicate(node){
   const clone={
     ...node,
-    id:`note-${Date.now()}-${Math.random().toString(36).slice(2,9)}`,
+    id:createArvioNoteId(),
     title:node.title,
     children:Array.isArray(node.children)
       ? node.children.map(cloneLibraryNodeForDuplicate)
@@ -1719,6 +2138,7 @@ function moveLibraryPath(path,targetParentPath=[]){
   const [node]=found.container.splice(found.index,1);
   const title=uniqueLibraryTitle(targetContainer,node.title);
   node.title=title;
+  node.updatedAt=new Date().toISOString();
   targetContainer.push(node);
 
   const newPath=[...targetPath,title];
@@ -1960,7 +2380,7 @@ function openArvioNote(path){
   activeNoteIsDraft=false;
 
   const node=found.node;
-  if(!node.id) node.id=`note-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
+  if(!node.id) node.id=createArvioNoteId();
   const legacyLocalNoteKey=`note:${path.join("/").toLowerCase()}`;
   activeLocalNoteKey=`noteid:${node.id}`;
   noteDirty=false;
@@ -2845,6 +3265,7 @@ function permanentlyDeleteLibraryTrashItems(ids){
   libraryTrash=libraryTrash.filter(item=>!selected.has(item.id));
   deleting.forEach(item=>{
     if(!findLibraryNode(item.path)) removeCreatedAtPrefix(item.path);
+    queueCloudDeleteIds(collectLibraryNodeIds(item.node));
     deleteLibrarySubtreeRecordsFromIndexedDB(item.node);
   });
   if(libraryTrash.length!==before){
@@ -3359,6 +3780,10 @@ window.addEventListener("offline",()=>{
 });
 window.addEventListener("online",()=>{
   if(document.querySelector("#page-note.active")) setNoteSaveStatus("saved",noteDirty?"Saving…":"Saved");
+  if(currentCloudUserId){
+    if(cloudSyncReady) scheduleCloudLibrarySync({delay:180});
+    else initializeCloudNotesForUser(currentCloudUserId).catch(()=>{});
+  }
 });
 editor.addEventListener("input",queueLocalSave);
 noteTitleInput?.addEventListener("input",()=>{
@@ -4691,6 +5116,10 @@ logoutConfirm?.addEventListener("click",()=>{
       return;
     }
 
+    currentCloudUserId=null;
+    cloudInitializedUserId=null;
+    cloudSyncReady=false;
+    clearTimeout(cloudSyncTimer);
     closeLogoutSheet();
     screens.workspace.classList.add("workspace-exit");
 

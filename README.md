@@ -2,7 +2,7 @@
 
 Arvio is a dark, premium, local-first collaborative notes workspace designed for desktop and iPhone/PWA use.
 
-## v3.2.0 — deploy-ready cleanup
+## v3.4.0 — deploy-ready cleanup
 
 This package preserves the Arvio v3.1 frontend and local-first behavior while fixing the CSS syntax issues that blocked Vercel's production minifier.
 
@@ -47,3 +47,7 @@ arvio/
 ```
 
 See `GITHUB-SETUP.md` for the upload/deploy flow and `DEPLOY-READY-CHECK.md` for the source audit performed before packaging.
+
+## v3.4.0
+
+Supabase cloud notes sync is enabled while IndexedDB remains the offline cache. See `SUPABASE-CLOUD-NOTES-SETUP.md` before deployment.
